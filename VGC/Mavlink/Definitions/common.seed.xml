@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mavlink>
+  <version>3</version>
+  <dialect>0</dialect>
+  <messages>
+    <message id="0" name="HEARTBEAT" crcExtra="50" clrType="MavlinkHeartbeat" />
+    <message id="1" name="SYS_STATUS" crcExtra="124" clrType="MavlinkSysStatus" />
+    <message id="20" name="PARAM_REQUEST_READ" crcExtra="214" clrType="MavlinkParameterRequestRead" />
+    <message id="21" name="PARAM_REQUEST_LIST" crcExtra="159" clrType="MavlinkParameterRequestList" />
+    <message id="22" name="PARAM_VALUE" crcExtra="220" clrType="MavlinkParameterValue" />
+    <message id="23" name="PARAM_SET" crcExtra="168" clrType="MavlinkParameterSet" />
+    <message id="30" name="ATTITUDE" crcExtra="39" clrType="MavlinkAttitude" />
+    <message id="33" name="GLOBAL_POSITION_INT" crcExtra="104" clrType="MavlinkGlobalPositionInt" />
+    <message id="43" name="MISSION_REQUEST_LIST" crcExtra="132" clrType="MavlinkMissionRequestList" />
+    <message id="44" name="MISSION_COUNT" crcExtra="221" clrType="MavlinkMissionCount" />
+    <message id="47" name="MISSION_ACK" crcExtra="153" clrType="MavlinkMissionAck" />
+    <message id="51" name="MISSION_REQUEST_INT" crcExtra="196" clrType="MavlinkMissionRequestInt" />
+    <message id="73" name="MISSION_ITEM_INT" crcExtra="38" clrType="MavlinkMissionItemInt" />
+    <message id="76" name="COMMAND_LONG" crcExtra="152" clrType="MavlinkCommandLong" />
+    <message id="77" name="COMMAND_ACK" crcExtra="143" clrType="MavlinkCommandAck" />
+    <message id="253" name="STATUSTEXT" crcExtra="83" clrType="MavlinkStatusText" />
+  </messages>
+</mavlink>

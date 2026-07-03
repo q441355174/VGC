@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.OverviewView"
+             x:DataType="vm:OverviewViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.flyPanel">
+      <Setter Property="Background" Value="#151f28"/>
+      <Setter Property="BorderBrush" Value="#2f3f4c"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="12"/>
+    </Style>
+    <Style Selector="TextBlock.panelTitle">
+      <Setter Property="Foreground" Value="#f3f6f9"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.panelValue">
+      <Setter Property="Foreground" Value="#c9d5df"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="*,150"
+        ColumnDefinitions="*,0.32*"
+        Background="#101820">
+    <Border Grid.RowSpan="2"
+            Background="#1d2b34">
+      <Grid>
+        <Grid Background="#1b2a34">
+          <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <Border Grid.Row="0" BorderBrush="#243542" BorderThickness="0,0,0,1"/>
+          <Border Grid.Row="1" BorderBrush="#243542" BorderThickness="0,0,0,1"/>
+        </Grid>
+        <Grid ColumnDefinitions="*,*,*">
+          <Border Grid.Column="0" BorderBrush="#243542" BorderThickness="0,0,1,0"/>
+          <Border Grid.Column="1" BorderBrush="#243542" BorderThickness="0,0,1,0"/>
+        </Grid>
+        <Border Width="96"
+                Height="96"
+                CornerRadius="48"
+                BorderBrush="#4d9af0"
+                BorderThickness="2"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+          <TextBlock Text="Map"
+                     Foreground="#d9e7f4"
+                     FontSize="18"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"/>
+        </Border>
+        <StackPanel HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Margin="16"
+                    Spacing="8">
+          <Border Classes="flyPanel">
+            <TextBlock Text="{Binding ActiveVehicleText}"
+                       Foreground="#e9f0f6"
+                       TextWrapping="Wrap"/>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <StackPanel Grid.Column="1"
+                Margin="12"
+                Spacing="12">
+      <Border Classes="flyPanel">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="panelTitle" Text="Vehicle"/>
+          <TextBlock Classes="panelValue" Text="{Binding ActiveVehicleText}" TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+      <Border Classes="flyPanel">
+        <Grid ColumnDefinitions="Auto,*"
+              RowDefinitions="Auto,Auto,Auto,Auto"
+              ColumnSpacing="12"
+              RowSpacing="8">
+          <TextBlock Classes="panelTitle" Text="Links"/>
+          <TextBlock Grid.Column="1" Classes="panelValue" Text="{Binding LinkStatus}"/>
+          <TextBlock Grid.Row="1" Classes="panelTitle" Text="MAVLink"/>
+          <TextBlock Grid.Row="1" Grid.Column="1" Classes="panelValue" Text="{Binding PacketsReceived}"/>
+          <TextBlock Grid.Row="2" Classes="panelTitle" Text="GCS HB"/>
+          <TextBlock Grid.Row="2" Grid.Column="1" Classes="panelValue" Text="{Binding HeartbeatsSent}"/>
+          <TextBlock Grid.Row="3" Classes="panelTitle" Text="Vehicles"/>
+          <TextBlock Grid.Row="3" Grid.Column="1" Classes="panelValue" Text="{Binding VehicleCount}"/>
+        </Grid>
+      </Border>
+    </StackPanel>
+
+    <Border Grid.Row="1"
+            Grid.Column="1"
+            Classes="flyPanel"
+            Margin="12,0,12,12">
+      <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Logs}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Message}"
+                         Foreground="#aebdcc"
+                         FontFamily="Consolas"
+                         FontSize="12"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+  </Grid>
+</UserControl>

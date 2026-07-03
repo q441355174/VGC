@@ -1,0 +1,275 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:controls="using:VGC.Views.Controls"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.settingsPanel">
+      <Setter Property="Background" Value="#333333"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Padding" Value="12"/>
+    </Style>
+    <Style Selector="TextBlock.panelTitle">
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.panelText">
+      <Setter Property="Foreground" Value="#909090"/>
+    </Style>
+    <Style Selector="TextBox.settingsValue, TextBox.linkInput, ComboBox.linkInput, NumericUpDown.linkInput">
+      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Background" Value="#222222"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+    </Style>
+    <Style Selector="Button.settingsButton">
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Background="#222222"
+        Margin="8"
+        SizeChanged="OnSettingsViewSizeChanged">
+    <Grid ColumnDefinitions="0.22*,0.78*"
+          ColumnSpacing="12">
+    <Border x:Name="SettingsNavPanel"
+            Classes="settingsPanel">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Application Settings"
+                   Foreground="#ffffff"
+                   FontSize="18"
+                   FontWeight="SemiBold"/>
+        <TextBox Classes="settingsValue"
+                 PlaceholderText="Search settings..."
+                 Text="{Binding SearchQuery, Mode=TwoWay}"/>
+        <TextBlock Text="{Binding SearchQuery, StringFormat='Search: {0}'}"
+                   Foreground="#909090"
+                   IsVisible="{Binding SearchQuery, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+        <ItemsControl ItemsSource="{Binding NavigationPages}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SettingsPageNode">
+              <StackPanel Spacing="4">
+                <controls:SectionButton Content="{Binding Name}"
+                                        IsChecked="{Binding IsSelected}"
+                                        Expandable="True"
+                                        Expanded="{Binding IsExpanded, Mode=TwoWay}"
+                                        Command="{Binding $parent[UserControl].DataContext.SelectSettingsPageCommand}"
+                                        CommandParameter="{Binding}"/>
+                <ItemsControl ItemsSource="{Binding Sections}"
+                              IsVisible="{Binding IsExpanded}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SettingsSectionNode">
+                      <Button Classes="settingsButton"
+                              Margin="20,0,0,0"
+                              Content="{Binding Name}"
+                              Command="{Binding $parent[UserControl].DataContext.SelectSettingsSectionCommand}"
+                              CommandParameter="{Binding}"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <Border x:Name="SettingsContentPanel"
+            Grid.Column="1"
+            Classes="settingsPanel">
+      <ScrollViewer>
+        <controls:SettingsPageHost SectionFilter="{Binding CurrentSectionFilter}">
+          <Grid>
+            <StackPanel IsVisible="{Binding ShowGeneralPage}"
+                        Spacing="12">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="General"
+                             Foreground="#ffffff"
+                             FontSize="20"
+                             FontWeight="SemiBold"/>
+                  <TextBlock Text="Application-wide settings"
+                             Foreground="#909090"/>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="settingsButton"
+                        Content="Save"
+                        Command="{Binding SaveCommand}"/>
+              </Grid>
+
+              <ListBox ItemsSource="{Binding Groups}"
+                       Background="#222222"
+                       BorderBrush="#4a4a4a"
+                       BorderThickness="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:SettingsGroupViewModel">
+                    <Grid RowDefinitions="Auto,*"
+                          Margin="0,8">
+                      <TextBlock Classes="panelTitle"
+                                 Text="{Binding Name}"
+                                 Margin="0,0,0,6"/>
+                      <ItemsControl Grid.Row="1"
+                                    ItemsSource="{Binding Facts}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:SettingsFactViewModel">
+                            <Grid ColumnDefinitions="180,*,90,2*"
+                                  ColumnSpacing="12"
+                                  Margin="0,4">
+                              <TextBlock Classes="panelText"
+                                         Text="{Binding Label}"
+                                         TextWrapping="Wrap"/>
+                              <TextBox Grid.Column="1"
+                                       Classes="settingsValue"
+                                       Text="{Binding Value, Mode=TwoWay}"/>
+                              <TextBlock Grid.Column="2"
+                                         Classes="panelText"
+                                         Text="{Binding Units}"/>
+                              <TextBlock Grid.Column="3"
+                                         Classes="panelText"
+                                         Text="{Binding ValidationError}"
+                                         TextWrapping="Wrap"/>
+                            </Grid>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding ShowCommLinksPage}"
+                        Spacing="12">
+              <Grid ColumnDefinitions="*,Auto"
+                    ColumnSpacing="8">
+                <StackPanel>
+                  <TextBlock Text="Links"
+                             Foreground="#ffffff"
+                             FontSize="20"
+                             FontWeight="SemiBold"/>
+                  <TextBlock Text="Manage saved communication links"
+                             Foreground="#909090"/>
+                </StackPanel>
+                <Button Grid.Column="1" Classes="settingsButton" Content="Add" Command="{Binding AddCommLinkCommand}"/>
+              </Grid>
+
+              <StackPanel Spacing="12">
+                <ListBox ItemsSource="{Binding CommLinkDisplayRows}"
+                         SelectedItem="{Binding SelectedCommLinkDisplayRow}"
+                         Background="#222222"
+                         BorderBrush="#4a4a4a">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CommLinkDisplayRow">
+                      <Grid ColumnDefinitions="*,Auto,Auto,Auto"
+                            ColumnSpacing="8"
+                            Margin="0,6">
+                        <Grid RowDefinitions="Auto,Auto">
+                          <TextBlock Text="{Binding Name}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                          <TextBlock Grid.Row="1" Text="{Binding Subtitle}" Foreground="#909090"/>
+                        </Grid>
+                        <Button Grid.Column="1"
+                                Classes="settingsButton"
+                                Content="Edit"
+                                Tag="{Binding Link}"
+                                Click="OnEditCommLink"/>
+                        <Button Grid.Column="2"
+                                Classes="settingsButton"
+                                Content="Delete"
+                                Tag="{Binding Link}"
+                                Click="OnDeleteCommLink"/>
+                        <Button Grid.Column="3"
+                                Classes="settingsButton"
+                                Content="{Binding ConnectActionText}"
+                                Tag="{Binding Link}"
+                                Click="OnToggleCommLinkConnection"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+
+                <Border Background="#282828"
+                        BorderBrush="#4a4a4a"
+                        BorderThickness="1"
+                        Padding="10">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Selected Link"
+                               Foreground="#ffffff"
+                               FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SelectedCommLinkSummary}"
+                               Foreground="#d0d0d0"
+                               TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding CommLinkStatusText}"
+                               Foreground="#48d6ff"
+                               TextWrapping="Wrap"/>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+        </controls:SettingsPageHost>
+      </ScrollViewer>
+    </Border>
+    </Grid>
+
+    <Border Background="#AA000000"
+            IsVisible="{Binding ShowCommLinkEditor}">
+      <Border x:Name="CommLinkEditorDialog"
+              Classes="settingsPanel"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              DataContext="{Binding EditingCommLink}">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Edit Link"
+                     Foreground="#ffffff"
+                     FontSize="18"
+                     FontWeight="SemiBold"/>
+          <TextBlock Text="Name" Foreground="#909090"/>
+          <TextBox Classes="linkInput" Text="{Binding Name, Mode=TwoWay}"/>
+          <TextBlock Text="Type" Foreground="#909090"/>
+          <TextBlock Text="{Binding Type}" Foreground="#ffffff"/>
+          <TextBlock Text="Host / Port / Serial fields" Foreground="#909090"/>
+          <TextBox Classes="linkInput" Text="{Binding Host, Mode=TwoWay}" IsVisible="{Binding IsTcp}"/>
+          <NumericUpDown Classes="linkInput" Minimum="1" Maximum="65535" Increment="1" Value="{Binding Port, Mode=TwoWay}" IsVisible="{Binding IsTcp}"/>
+          <NumericUpDown Classes="linkInput" Minimum="1" Maximum="65535" Increment="1" Value="{Binding LocalPort, Mode=TwoWay}" IsVisible="{Binding IsUdp}"/>
+          <TextBox Classes="linkInput" Text="{Binding SerialPortName, Mode=TwoWay}" IsVisible="{Binding IsSerial}"/>
+          <NumericUpDown Classes="linkInput" Minimum="1" Maximum="4000000" Increment="100" Value="{Binding BaudRate, Mode=TwoWay}" IsVisible="{Binding IsSerial}"/>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Classes="settingsButton" Content="Cancel" Command="{Binding $parent[UserControl].DataContext.CancelEditedCommLinkCommand}"/>
+            <Button Classes="settingsButton" Content="Save" Command="{Binding $parent[UserControl].DataContext.SaveEditedCommLinkCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+
+    <Border Background="#AA000000"
+            IsVisible="{Binding ShowDeleteCommLinkDialog}">
+      <Border x:Name="DeleteCommLinkDialog"
+              Classes="settingsPanel"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Delete Link"
+                     Foreground="#ffffff"
+                     FontSize="18"
+                     FontWeight="SemiBold"/>
+          <TextBlock Text="{Binding DeleteCommLinkPrompt}"
+                     Foreground="#d0d0d0"
+                     TextWrapping="Wrap"/>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Classes="settingsButton" Content="Cancel" Command="{Binding CancelDeleteCommLinkCommand}"/>
+            <Button Classes="settingsButton" Content="Delete" Command="{Binding ConfirmDeleteCommLinkCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

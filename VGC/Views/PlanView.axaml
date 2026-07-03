@@ -1,0 +1,320 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.PlanView"
+             x:DataType="vm:PlanViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.planButton">
+      <Setter Property="MinHeight" Value="36"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="Button.stripButton">
+      <Setter Property="Width" Value="62"/>
+      <Setter Property="Height" Value="62"/>
+      <Setter Property="Padding" Value="4"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="FontSize" Value="10"/>
+    </Style>
+    <Style Selector="Border.panel">
+      <Setter Property="Background" Value="#CC222222"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="10"/>
+    </Style>
+    <Style Selector="TextBlock.title">
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.text">
+      <Setter Property="Foreground" Value="#909090"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="TextBox.planInput">
+      <Setter Property="MinHeight" Value="30"/>
+      <Setter Property="Background" Value="#222222"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="48,*"
+        Background="#222222"
+        SizeChanged="OnPlanViewSizeChanged">
+    <Border Background="#222222"
+            BorderBrush="#4a4a4a"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto"
+            ColumnSpacing="12"
+            Margin="8,0">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center">
+          <TextBlock Text="Plan" Foreground="#ffffff" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+          <Button Classes="planButton" Content="Mission" Command="{Binding ShowMissionSectionCommand}"/>
+          <Button Classes="planButton" Content="Fence" Command="{Binding ShowGeoFenceSectionCommand}"/>
+          <Button Classes="planButton" Content="Rally" Command="{Binding ShowRallySectionCommand}"/>
+        </StackPanel>
+
+        <ItemsControl Grid.Column="1"
+                      ItemsSource="{Binding PlanTransferCommands}"
+                      VerticalAlignment="Center">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:PlanTransferToolbarCommand">
+              <Button Classes="planButton"
+                      Content="{Binding Label}"
+                      Command="{Binding Command}"
+                      IsEnabled="{Binding IsEnabled}"
+                      Margin="0,0,8,0"/>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <StackPanel Grid.Column="2"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+          <TextBlock Text="{Binding PlanTransferLinkText}"
+                     Foreground="#909090"
+                     VerticalAlignment="Center"/>
+          <Button Classes="planButton" Content="Confirm" Command="{Binding ConfirmPendingTransferCommand}" IsVisible="{Binding HasPendingTransfer}"/>
+          <Button Classes="planButton" Content="Cancel" Command="{Binding CancelPendingTransferCommand}" IsVisible="{Binding HasPendingTransfer}"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1">
+      <Border Background="#000000"
+              PointerPressed="OnPlanMapPointerPressed">
+        <Grid>
+          <Grid RowDefinitions="*,*,*">
+            <Border Grid.Row="0" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
+            <Border Grid.Row="1" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
+          </Grid>
+          <Grid ColumnDefinitions="*,*,*">
+            <Border Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
+            <Border Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
+          </Grid>
+
+          <StackPanel x:Name="PlanMapCenterLayer"
+                      Orientation="Horizontal"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Top"
+                      Spacing="18">
+            <Border Width="44"
+                    Height="44"
+                    CornerRadius="22"
+                    Background="#48d6ff">
+              <TextBlock Text="H"
+                         Foreground="#000000"
+                         FontWeight="Bold"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+            </Border>
+            <ItemsControl ItemsSource="{Binding MissionMapMarkers}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PlanMissionMapMarker">
+                  <Border Width="34"
+                          Height="34"
+                          CornerRadius="17"
+                          Background="#f9d838"
+                          BorderBrush="#48d6ff"
+                          BorderThickness="2"
+                          Margin="0,0,8,0"
+                          ToolTip.Tip="{Binding Summary}">
+                    <TextBlock Text="{Binding MarkerText}"
+                               Foreground="#121820"
+                               FontWeight="Bold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border x:Name="PlanToolStrip"
+              Background="#CC222222"
+              BorderBrush="#4a4a4a"
+              BorderThickness="1"
+              CornerRadius="5"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="8"
+              Padding="4"
+              MinWidth="70">
+        <StackPanel Spacing="2">
+          <Button Classes="stripButton" Content="T/O" IsEnabled="False"/>
+          <Button Classes="stripButton" Content="WP" Command="{Binding SelectWaypointMapToolCommand}"/>
+          <Button Classes="stripButton" Content="MV" Command="{Binding SelectMoveWaypointMapToolCommand}"/>
+          <Button Classes="stripButton" Content="RTL" IsEnabled="False"/>
+          <Button Classes="stripButton" Content="FP" Command="{Binding SelectFencePolygonMapToolCommand}"/>
+          <Button Classes="stripButton" Content="FC" Command="{Binding SelectFenceCircleMapToolCommand}"/>
+          <Button Classes="stripButton" Content="RLY" Command="{Binding SelectRallyMapToolCommand}"/>
+        </StackPanel>
+      </Border>
+
+      <Border x:Name="PlanClickHint"
+              Classes="panel"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top"
+              Margin="0,8,0,0"
+>
+        <StackPanel Spacing="4">
+          <TextBlock Classes="title" Text="{Binding PlanMapClickModeText}"/>
+          <TextBlock Classes="text" Text="Click the map workspace to place the selected item." TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+
+      <Border x:Name="PlanSummaryPanel"
+              Classes="panel"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Margin="8"
+              MaxWidth="480">
+        <Grid RowDefinitions="Auto,Auto,Auto"
+              RowSpacing="8">
+          <TextBlock Classes="title" Text="{Binding MissionSummary}"/>
+          <TextBlock Grid.Row="1"
+                     Classes="text"
+                     Text="{Binding PlanMapPreviewSummary}"
+                     TextWrapping="Wrap"/>
+          <ProgressBar Grid.Row="2"
+                       Minimum="0"
+                       Maximum="100"
+                       Value="{Binding MissionTransferProgressPercent}"/>
+        </Grid>
+      </Border>
+
+      <Button x:Name="PlanPanelToggle"
+              Content="&lt;&gt;"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Center"
+              Margin="0,0,0,0"
+              MinWidth="28"
+              MinHeight="44"
+              Padding="4,6"
+              CornerRadius="4"
+              Background="#464646"
+              BorderBrush="#4a4a4a"
+              Foreground="#ffffff"
+              Command="{Binding ToggleRightPanelCommand}"/>
+
+      <Border x:Name="PlanRightPanel"
+              Classes="panel"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Stretch"
+              Margin="0,8,8,8"
+              IsVisible="{Binding !IsRightPanelCollapsed}">
+        <ScrollViewer>
+          <StackPanel Spacing="12">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="title" Text="Plan Editor"/>
+              <TextBlock Classes="text" Text="{Binding MissionStats}"/>
+              <TextBlock Classes="text" Text="{Binding VehicleMissionState}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding PendingTransferText}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding LatestTransferNotificationText}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding PlanImportExportStatusText}" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="title" Text="Mission Items"/>
+              <ListBox ItemsSource="{Binding MissionItems}"
+                       SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                       MinHeight="138"
+                       Background="#222222"
+                       BorderBrush="#4a4a4a">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="36,*,48" ColumnSpacing="8">
+                      <TextBlock Text="{Binding DoJumpId}" Foreground="#f9d838"/>
+                      <TextBlock Grid.Column="1" Text="{Binding Type}" Foreground="#ffffff"/>
+                      <TextBlock Grid.Column="2" Text="{Binding Command}" Foreground="#909090"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                <Button Classes="planButton" Content="Remove" Command="{Binding RemoveSelectedItemCommand}"/>
+                <Button Grid.Column="1" Classes="planButton" Content="Up" Command="{Binding MoveSelectedItemUpCommand}"/>
+                <Button Grid.Column="2" Classes="planButton" Content="Down" Command="{Binding MoveSelectedItemDownCommand}"/>
+              </Grid>
+            </StackPanel>
+
+            <Border Background="#222222"
+                    BorderBrush="#4a4a4a"
+                    BorderThickness="1"
+                    Padding="10">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="title" Text="Mission Item Editor"/>
+                <TextBlock Classes="text" Text="{Binding SelectedItemSummary}" TextWrapping="Wrap"/>
+                <TextBlock Classes="text" Text="{Binding SelectedItemCoordinateText}" TextWrapping="Wrap"/>
+                <Grid ColumnDefinitions="88,*"
+                      RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                      ColumnSpacing="10"
+                      RowSpacing="8">
+                  <TextBlock Classes="text" Text="Command"/>
+                  <TextBox Grid.Column="1" Classes="planInput" Text="{Binding SelectedCommand, Mode=TwoWay}"/>
+                  <TextBlock Grid.Row="1" Classes="text" Text="Frame"/>
+                  <TextBox Grid.Row="1" Grid.Column="1" Classes="planInput" Text="{Binding SelectedFrame, Mode=TwoWay}"/>
+                  <TextBlock Grid.Row="2" Classes="text" Text="Latitude"/>
+                  <TextBox Grid.Row="2" Grid.Column="1" Classes="planInput" Text="{Binding SelectedLatitude, Mode=TwoWay}"/>
+                  <TextBlock Grid.Row="3" Classes="text" Text="Longitude"/>
+                  <TextBox Grid.Row="3" Grid.Column="1" Classes="planInput" Text="{Binding SelectedLongitude, Mode=TwoWay}"/>
+                  <TextBlock Grid.Row="4" Classes="text" Text="Altitude"/>
+                  <TextBox Grid.Row="4" Grid.Column="1" Classes="planInput" Text="{Binding SelectedAltitude, Mode=TwoWay}"/>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="title" Text="File Workflow"/>
+              <TextBlock Classes="text" Text="{Binding FileWorkflowState.StatusText}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding FileWorkflowState.ValidationSummary}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding FileWorkflowState.AndroidStorageRiskText}" TextWrapping="Wrap"/>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="title" Text="GeoFence"/>
+              <TextBlock Classes="text" Text="{Binding GeoFenceSummary}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding GeoFenceValidationText}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding GeoFenceTransferSummary}" TextWrapping="Wrap"/>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding GeoFenceTransferProgressPercent}"/>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Classes="title" Text="Rally"/>
+              <TextBlock Classes="text" Text="{Binding RallySummary}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding RallyValidationText}" TextWrapping="Wrap"/>
+              <TextBlock Classes="text" Text="{Binding RallyTransferSummary}" TextWrapping="Wrap"/>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding RallyTransferProgressPercent}"/>
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

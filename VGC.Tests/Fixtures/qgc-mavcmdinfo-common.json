@@ -1,0 +1,55 @@
+{
+  "comment": "Any Firmware, Any Vehicle",
+  "version": 1,
+  "fileType": "MavCmdInfo",
+  "mavCmdInfo": [
+    {
+      "id": 16,
+      "rawName": "MAV_CMD_NAV_WAYPOINT",
+      "friendlyName": "Waypoint",
+      "description": "Travel to a position in 3D space.",
+      "specifiesCoordinate": true,
+      "friendlyEdit": true,
+      "category": "Basic",
+      "param1": {
+        "label": "Hold",
+        "units": "secs",
+        "default": 0
+      },
+      "param2": {
+        "label": "Acceptance",
+        "units": "m",
+        "default": 0
+      },
+      "param4": {
+        "label": "Yaw",
+        "units": "deg",
+        "default": null
+      }
+    },
+    {
+      "id": 22,
+      "rawName": "MAV_CMD_NAV_TAKEOFF",
+      "friendlyName": "Takeoff",
+      "description": "Launch from the ground and travel towards the specified takeoff position.",
+      "friendlyEdit": true,
+      "category": "Basic",
+      "paramRemove": "2,3",
+      "param1": {
+        "label": "Pitch",
+        "units": "deg",
+        "default": 15
+      },
+      "param2": {
+        "label": "Removed",
+        "units": "m",
+        "default": 1
+      },
+      "param7": {
+        "label": "Altitude",
+        "units": "m",
+        "default": 50
+      }
+    }
+  ]
+}

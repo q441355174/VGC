@@ -1,0 +1,720 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:vehicles="using:VGC.Vehicles"
+             xmlns:controls="using:VGC.Views.Controls"
+             xmlns:setup="using:VGC.Setup"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.FlyView"
+             x:DataType="vm:FlyViewModel">
+
+  <!-- ================================================================ -->
+  <!-- QGC-style FlyView: Root Grid with 48px toolbar + map area        -->
+  <!-- ================================================================ -->
+  <Grid RowDefinitions="48,*" Background="#222222">
+
+    <!-- ================================================================ -->
+    <!-- Row 0: TOOLBAR (height=48, QgcColors.ToolbarBackground=#222222) -->
+    <!-- Left: Brand+MainStatus+FlightMode | Center: GuidedActionConfirm | Right: indicators -->
+    <!-- ================================================================ -->
+    <Border Grid.Row="0"
+            Background="#222222"
+            BorderBrush="#4a4a4a"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+
+        <!-- LEFT: Brand Button + MainStatusIndicator + FlightModeIndicator -->
+        <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="0"
+                    VerticalAlignment="Stretch">
+
+          <!-- Brand Button (purple gradient) -->
+          <Button x:Name="BrandButton"
+                  MinWidth="48" Height="48"
+                  Padding="8,0"
+                  VerticalAlignment="Stretch"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  BorderThickness="0"
+                  Click="OnBrandButtonClicked">
+            <Button.Background>
+              <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Color="{Binding MainStatusColor}" Offset="0"/>
+                <GradientStop Color="#222222" Offset="1"/>
+              </LinearGradientBrush>
+            </Button.Background>
+            <TextBlock Text="VGC"
+                       Foreground="#ffffff"
+                       FontSize="14"
+                       FontWeight="Bold"/>
+          </Button>
+
+          <!-- MainStatusIndicator -->
+          <controls:MainStatusToolbarIndicator
+              x:Name="MainStatusIndicator"
+              ValueText="{Binding MainStatusText}"
+              FirmwareText="{Binding ModeText}"
+              VehicleTypeText="{Binding ArmText}"
+              ShowIndicator="True"
+              Margin="4,0"
+              VerticalAlignment="Center"/>
+
+          <!-- FlightModeIndicator -->
+          <controls:FlightModeToolbarIndicator
+              x:Name="FlightModeIndicator"
+              ModeName="{Binding ModeText}"
+              ValueText="{Binding ModeText}"
+              ShowIndicator="{Binding HasActiveVehicle}"
+              Margin="4,0"
+              VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- CENTER: GuidedActionConfirm (QgcDelayButton, visible when pending) -->
+        <Border Grid.Column="1"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                IsVisible="{Binding HasPendingGuidedAction}"
+                Margin="12,4">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <controls:QgcDelayButton x:Name="GuidedDelayButton"
+                                     Content="{Binding PendingGuidedActionText}"
+                                     Height="36"
+                                     HorizontalAlignment="Stretch"
+                                     Background="#464646"
+                                     Foreground="#ffffff"
+                                     FontSize="13"
+                                     FontWeight="SemiBold"
+                                     CornerRadius="5"
+                                     BorderThickness="0"
+                                     DelaySeconds="1.5"
+                                     Activated="OnDelayButtonActivated"/>
+            <TextBlock Grid.Column="1"
+                       Text="{Binding PendingGuidedActionText}"
+                       Foreground="#909090"
+                       FontSize="12"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"/>
+          </Grid>
+        </Border>
+
+        <ItemsControl Grid.Column="2"
+                      ItemsSource="{Binding ToolbarIndicators}"
+                      VerticalAlignment="Center"
+                      Margin="10,0">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="17"/>
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:FlyToolbarIndicatorItem">
+              <Button Background="Transparent"
+                      BorderThickness="0"
+                      Padding="0"
+                      Tag="{Binding Kind}"
+                      IsVisible="{Binding IsVisible}"
+                      Click="OnToolbarIndicatorClicked">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{Binding Label}" Foreground="#909090" FontSize="11" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding Value}" Foreground="#ffffff" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Grid>
+    </Border>
+
+    <!-- ================================================================ -->
+    <!-- Row 1: MAP AREA (fill) - layered content                        -->
+    <!-- ================================================================ -->
+    <Grid Grid.Row="1" x:Name="MapAreaGrid" SizeChanged="OnMapAreaSizeChanged">
+
+      <!-- Layer 0: Map placeholder (fill) -->
+      <Grid x:Name="FlyMapHolder">
+      <Border Background="#000000">
+        <Grid>
+          <!-- Grid lines for map placeholder -->
+          <Grid RowDefinitions="*,*,*">
+            <Border Grid.Row="0" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
+            <Border Grid.Row="1" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
+          </Grid>
+          <Grid ColumnDefinitions="*,*,*">
+            <Border Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
+            <Border Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
+          </Grid>
+
+          <!-- Range rings -->
+          <Ellipse x:Name="OuterRangeRing"
+                   Stroke="#333333" StrokeThickness="1"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <Ellipse x:Name="InnerRangeRing"
+                   Stroke="#3a3a3a" StrokeThickness="1"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+          <!-- Vehicle marker -->
+          <Border x:Name="VehicleMapMarker"
+                  Background="#17b93e" BorderBrush="#eafff3"
+                  BorderThickness="2"
+                  IsVisible="{Binding HasMapVehicle}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <!-- Crosshair -->
+          <Border x:Name="VehicleCrosshairVertical"
+                  Background="#ffffff"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  IsVisible="{Binding HasMapVehicle}"/>
+          <Border x:Name="VehicleCrosshairHorizontal"
+                  Background="#ffffff"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                  IsVisible="{Binding HasMapVehicle}"/>
+
+          <!-- Home marker -->
+          <Border x:Name="HomeMapMarker"
+                  Background="#f9d838" BorderBrush="#fff8d6"
+                  BorderThickness="2" CornerRadius="2"
+                  IsVisible="{Binding HasMapHome}"
+                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+          <!-- Trajectory -->
+          <Polyline x:Name="VehicleTrajectory"
+                    Stroke="#48d6ff" StrokeThickness="3"
+                    IsVisible="{Binding HasMapTrajectory}"/>
+        </Grid>
+      </Border>
+
+      <!-- Layer 1: ToolStrip (left-top, width=70px, vertical, square buttons) -->
+      <Border x:Name="FlyToolStrip"
+              Background="#CC222222"
+              BorderBrush="#4a4a4a"
+              BorderThickness="1"
+              CornerRadius="5"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="8,8,0,0"
+              Padding="4"
+              MinWidth="70">
+        <StackPanel Spacing="2">
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="PRE"
+                  ToolTip.Tip="Preflight Checklist"
+                  IsEnabled="{Binding HasActiveVehicle}"
+                  Click="OnShowPreflightPopup"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="T/O"
+                  ToolTip.Tip="Takeoff"
+                  Command="{Binding RequestTakeoffActionCommand}"
+                  IsEnabled="{Binding HasActiveVehicle}"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="LND"
+                  ToolTip.Tip="Land"
+                  Command="{Binding RequestLandActionCommand}"
+                  IsEnabled="{Binding HasActiveVehicle}"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="RTL"
+                  ToolTip.Tip="Return to Launch"
+                  Command="{Binding RequestReturnActionCommand}"
+                  IsEnabled="{Binding HasActiveVehicle}"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="||"
+                  ToolTip.Tip="Pause"
+                  Command="{Binding RequestPauseActionCommand}"
+                  IsEnabled="{Binding HasActiveVehicle}"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="MORE"
+                  ToolTip.Tip="More Actions"
+                  Click="OnMoreActionsClicked"/>
+          <Button Width="62" Height="62"
+                  Padding="4" CornerRadius="5"
+                  Background="#464646" BorderThickness="0"
+                  Foreground="#ffffff"
+                  HorizontalContentAlignment="Center"
+                  VerticalContentAlignment="Center"
+                  FontSize="10"
+                  Content="JS"
+                  ToolTip.Tip="Virtual Joystick"
+                  Click="OnToggleVirtualJoystick"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Layer 2: MapScale (left, below ToolStrip, near right edge of strip) -->
+      <Border x:Name="FlyMapScale"
+              Background="#CC222222"
+              CornerRadius="3"
+              Padding="6,3"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="0,8,0,0">
+        <TextBlock Text="{Binding MapZoomText}"
+                   Foreground="#909090"
+                   FontSize="10"/>
+      </Border>
+
+      <!-- Layer 3: Flight Instruments HUD (center, only when HasActiveVehicle) -->
+      <StackPanel x:Name="FlightHudPanel"
+                  Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="8"
+                  IsVisible="{Binding HasActiveVehicle}">
+        <controls:VerticalGauge x:Name="SpeedGauge"
+                                Value="{Binding ActiveSpeedMs}"
+                                Label="SPD" Units="m/s"
+                                Range="40" Step="5"/>
+        <controls:AttitudeIndicator x:Name="AttitudeHud"
+                                    Pitch="{Binding ActivePitchDeg}"
+                                    Roll="{Binding ActiveRollDeg}"/>
+        <controls:VerticalGauge x:Name="AltitudeGauge"
+                                Value="{Binding ActiveAltitudeM}"
+                                Label="ALT" Units="m"
+                                Range="100" Step="10"/>
+        <controls:CompassIndicator x:Name="CompassHud"
+                                   Heading="{Binding ActiveHeadingDeg}"/>
+      </StackPanel>
+
+      <!-- Layer 4: PiP (left-bottom, 20% parent width via SizeChanged, aspect 16:9, ZIndex=10) -->
+      <Border x:Name="PipBorder"
+              Background="#CC222222"
+              BorderBrush="#4a4a4a"
+              BorderThickness="1"
+              CornerRadius="5"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Bottom"
+              Margin="8,0,0,8"
+              ZIndex="10">
+        <Grid>
+          <Border Background="#000000" CornerRadius="4">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="2">
+              <TextBlock Text="PiP"
+                         Foreground="#909090"
+                         FontSize="11"
+                         HorizontalAlignment="Center"/>
+              <TextBlock Text="{Binding MapVehicleMarkerText}"
+                         Foreground="#909090"
+                         FontSize="10"
+                         TextWrapping="Wrap"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+          <Button Content="Swap"
+                  FontSize="10"
+                  MinHeight="22"
+                  MinWidth="40"
+                  Padding="6,2"
+                  Background="#464646"
+                  Foreground="#ffffff"
+                  BorderThickness="0"
+                  CornerRadius="3"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Margin="2"
+                  Click="OnSwapPip"/>
+        </Grid>
+      </Border>
+
+      <StackPanel x:Name="FlyTopRightOverlay"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Margin="0,8,8,0"
+                  Spacing="8">
+        <Border x:Name="PayloadPanel"
+                Background="#CC222222"
+                BorderBrush="#4a4a4a"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="10"
+                IsVisible="{Binding HasPayloadActivity}">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel>
+                <TextBlock Text="Payload" Foreground="#909090" FontSize="12"/>
+                <TextBlock Text="{Binding OperatorLayout.PayloadSummary}" Foreground="#ffffff" FontWeight="SemiBold" TextWrapping="Wrap"/>
+              </StackPanel>
+              <Button Grid.Column="1"
+                      Content="Photo"
+                      Background="#464646" Foreground="#ffffff"
+                      BorderThickness="0" CornerRadius="5"
+                      MinHeight="38" Padding="10,5"
+                      Command="{Binding CaptureImageCommand}"/>
+            </Grid>
+            <TextBlock Text="{Binding PayloadVideoText}" Foreground="#909090" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding PayloadCameraReadyText}" Foreground="#909090" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding PayloadGimbalAttitudeText}" Foreground="#909090" TextWrapping="Wrap"/>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+              <Button Content="Record"
+                      Background="#464646" Foreground="#ffffff"
+                      BorderThickness="0" CornerRadius="5"
+                      MinHeight="38" Padding="10,5"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding RecordVideoCommand}"/>
+              <Button Grid.Column="1"
+                      Content="Tilt Down"
+                      Background="#464646" Foreground="#ffffff"
+                      BorderThickness="0" CornerRadius="5"
+                      MinHeight="38" Padding="10,5"
+                      HorizontalContentAlignment="Center"
+                      Command="{Binding TiltGimbalDownCommand}"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <Border x:Name="WidgetPanel"
+                Background="#CC222222"
+                BorderBrush="#4a4a4a"
+                BorderThickness="1"
+                CornerRadius="5"
+                Padding="10">
+          <StackPanel Spacing="6">
+            <TextBlock Text="Widgets" Foreground="#ffffff" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding OperatorLayout.PositionSummary}" Foreground="#ffffff" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding OperatorLayout.AttitudeSummary}" Foreground="#909090" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding OperatorLayout.SpeedSummary}" Foreground="#909090" TextWrapping="Wrap"/>
+            <TextBlock Text="{Binding OperatorLayout.EstimatorSummary}" Foreground="#909090" TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+
+      <Border x:Name="BottomTelemetryPanel"
+              Background="#CC222222"
+              BorderBrush="#4a4a4a"
+              BorderThickness="1"
+              CornerRadius="5"
+              Padding="10"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Bottom"
+              Margin="0,0,8,8">
+        <StackPanel Orientation="Horizontal" Spacing="16">
+          <StackPanel Spacing="0">
+            <TextBlock Text="POS" Foreground="#909090" FontSize="10"/>
+            <TextBlock Text="{Binding OperatorLayout.PositionSummary}" Foreground="#ffffff" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap"/>
+          </StackPanel>
+          <StackPanel Spacing="0">
+            <TextBlock Text="ATT" Foreground="#909090" FontSize="10"/>
+            <TextBlock Text="{Binding OperatorLayout.AttitudeSummary}" Foreground="#ffffff" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap"/>
+          </StackPanel>
+          <StackPanel Spacing="0">
+            <TextBlock Text="SPD" Foreground="#909090" FontSize="10"/>
+            <TextBlock Text="{Binding OperatorLayout.SpeedSummary}" Foreground="#ffffff" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap"/>
+          </StackPanel>
+          <StackPanel Spacing="0">
+            <TextBlock Text="EKF" Foreground="#909090" FontSize="10"/>
+            <TextBlock Text="{Binding OperatorLayout.EstimatorSummary}" Foreground="#ffffff" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap"/>
+          </StackPanel>
+          <StackPanel Spacing="0">
+            <TextBlock Text="WARN" Foreground="#909090" FontSize="10"/>
+            <TextBlock Text="{Binding OperatorLayout.WarningSummary}" Foreground="#ffffff" FontSize="12" FontWeight="SemiBold" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Layer 7: GuidedValueSlider (right edge, full height, ZIndex=20, visible=false initially) -->
+      <controls:GuidedValueSlider x:Name="AltitudeSlider"
+                                   HorizontalAlignment="Right"
+                                   VerticalAlignment="Stretch"
+                                   Margin="0,8,0,8"
+                                   Title="Altitude"
+                                   Units="m"
+                                   Minimum="0"
+                                   Maximum="120"
+                                   Step="5"
+                                   Value="10"
+                                   IsVisible="False"
+                                   ZIndex="20"/>
+
+      <!-- Layer 8: VehicleWarnings (center, ZIndex=30, large text red popup) -->
+      <Border x:Name="VehicleWarningBanner"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Background="#b33535"
+              Padding="24,12"
+              CornerRadius="5"
+              IsVisible="False"
+              ZIndex="30">
+        <TextBlock x:Name="VehicleWarningText"
+                   Text=""
+                   Foreground="#ffffff"
+                   FontSize="22"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   TextAlignment="Center"
+                   TextWrapping="Wrap"/>
+      </Border>
+
+      <!-- Layer 9: Virtual Joystick (bottom, height=min(25%,160px)) -->
+      <Grid x:Name="VirtualJoystickPanel"
+            IsVisible="{Binding VirtualJoystickVisible}"
+            VerticalAlignment="Bottom"
+            HorizontalAlignment="Stretch"
+            Margin="24,0,24,24"
+            ZIndex="5">
+        <Grid x:Name="VirtualJoystickGrid" ColumnDefinitions="*,Auto,*">
+          <!-- Left Stick (Throttle/Yaw) -->
+          <Border x:Name="LeftStickPanel"
+                  Background="#CC222222"
+                  BorderBrush="#4a4a4a"
+                  BorderThickness="1"
+                  CornerRadius="16">
+            <Panel x:Name="LeftStickArea"
+                   PointerPressed="OnLeftStickPressed"
+                   PointerMoved="OnLeftStickMoved"
+                   PointerReleased="OnLeftStickReleased">
+              <TextBlock Text="Throttle / Yaw"
+                         Foreground="#909090"
+                         FontSize="11"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Top"
+                         Margin="0,8,0,0"/>
+              <Ellipse x:Name="LeftStickOuterRing"
+                       Stroke="#3a3a3a" StrokeThickness="1"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Ellipse x:Name="LeftStickInnerRing"
+                       Stroke="#333333" StrokeThickness="1"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Border x:Name="LeftStickThumb"
+                      Background="#CC48d6ff"
+                      BorderBrush="#48d6ff"
+                      BorderThickness="2"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Panel>
+          </Border>
+
+          <!-- Center Status -->
+          <StackPanel Grid.Column="1"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Center"
+                      Spacing="4">
+            <TextBlock Text="{Binding VirtualJoystickStatusText}"
+                       Foreground="#909090"
+                       FontSize="11"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <!-- Right Stick (Pitch/Roll) -->
+          <Border x:Name="RightStickPanel"
+                  Grid.Column="2"
+                  Background="#CC222222"
+                  BorderBrush="#4a4a4a"
+                  BorderThickness="1"
+                  CornerRadius="16">
+            <Panel x:Name="RightStickArea"
+                   PointerPressed="OnRightStickPressed"
+                   PointerMoved="OnRightStickMoved"
+                   PointerReleased="OnRightStickReleased">
+              <TextBlock Text="Pitch / Roll"
+                         Foreground="#909090"
+                         FontSize="11"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Top"
+                         Margin="0,8,0,0"/>
+              <Ellipse x:Name="RightStickOuterRing"
+                       Stroke="#3a3a3a" StrokeThickness="1"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Ellipse x:Name="RightStickInnerRing"
+                       Stroke="#333333" StrokeThickness="1"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              <Border x:Name="RightStickThumb"
+                      Background="#CC48d6ff"
+                      BorderBrush="#48d6ff"
+                      BorderThickness="2"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Panel>
+          </Border>
+        </Grid>
+      </Grid>
+
+      <!-- Layer 10: Preflight popup (center modal, ZIndex=40) -->
+      <Border x:Name="PreflightPopup"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              Width="460"
+              MaxHeight="500"
+              Background="#F0222222"
+              BorderBrush="#48d6ff"
+              BorderThickness="2"
+              CornerRadius="5"
+              Padding="16"
+              IsVisible="False"
+              ZIndex="40">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Pre-Flight Checklist"
+                       Foreground="#ffffff"
+                       FontSize="18"
+                       FontWeight="SemiBold"/>
+            <Button Grid.Column="1"
+                    Content="X"
+                    Background="#464646" Foreground="#ffffff"
+                    BorderThickness="0" CornerRadius="5"
+                    MinHeight="28" MinWidth="28" Padding="4"
+                    Click="OnClosePreflightPopup"/>
+          </Grid>
+
+          <ScrollViewer Grid.Row="1">
+            <StackPanel Spacing="6">
+              <TextBlock Text="{Binding Preflight.Summary}"
+                         Foreground="#909090"
+                         TextWrapping="Wrap"/>
+              <ItemsControl ItemsSource="{Binding Preflight.Items}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="setup:PreflightChecklistItem">
+                    <Grid ColumnDefinitions="32,*,120" ColumnSpacing="8" Margin="0,3">
+                      <Border Width="24" Height="24"
+                              CornerRadius="12"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Background="#17b93e">
+                        <TextBlock Text="OK"
+                                   Foreground="White"
+                                   FontSize="10"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                      </Border>
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Label}"
+                                 Foreground="#ffffff"
+                                 VerticalAlignment="Center"/>
+                      <TextBlock Grid.Column="2"
+                                 Text="{Binding Detail}"
+                                 Foreground="#909090"
+                                 FontSize="11"
+                                 VerticalAlignment="Center"
+                                 TextTrimming="CharacterEllipsis"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </ScrollViewer>
+
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+            <TextBlock Text="{Binding Preflight.VehicleLabel}"
+                       Foreground="#909090"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+            <Button Content="Close"
+                    Background="#464646" Foreground="#ffffff"
+                    BorderThickness="0" CornerRadius="5"
+                    MinHeight="38" Padding="10,5"
+                    Click="OnClosePreflightPopup"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Layer 11: Critical message popup (center, ZIndex=50) -->
+      <Border x:Name="CriticalMessagePopup"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              MaxWidth="480"
+              Background="#b33535"
+              BorderBrush="#fb4f45"
+              BorderThickness="2"
+              CornerRadius="5"
+              Padding="20"
+              IsVisible="False"
+              ZIndex="50">
+        <StackPanel Spacing="10">
+          <TextBlock Text="VEHICLE WARNING"
+                     Foreground="#ffffff"
+                     FontSize="18"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"/>
+          <TextBlock x:Name="CriticalMessageText"
+                     Text=""
+                     Foreground="#ffffff"
+                     FontSize="14"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center"
+                     TextAlignment="Center"/>
+          <Button Content="Dismiss"
+                  Background="#464646" Foreground="#ffffff"
+                  BorderThickness="0" CornerRadius="5"
+                  MinHeight="38" Padding="10,5"
+                  HorizontalAlignment="Center"
+                  HorizontalContentAlignment="Center"
+                  Click="OnDismissCriticalMessage"
+                  MinWidth="120"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Layer 12: Mission complete overlay (center, ZIndex=50) -->
+      <Border x:Name="MissionCompleteOverlay"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              MaxWidth="460"
+              Background="#CC222222"
+              BorderBrush="#17b93e"
+              BorderThickness="2"
+              CornerRadius="5"
+              Padding="20"
+              IsVisible="{Binding ShowMissionCompleteDialog}"
+              ZIndex="50">
+        <StackPanel Spacing="12">
+          <TextBlock Text="MISSION COMPLETE"
+                     Foreground="#17b93e"
+                     FontSize="20"
+                     FontWeight="Bold"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="{Binding MissionCompleteText}"
+                     Foreground="#ffffff"
+                     FontSize="14"
+                     TextWrapping="Wrap"
+                     HorizontalAlignment="Center"
+                     TextAlignment="Center"/>
+          <Button Content="OK"
+                  Background="#464646" Foreground="#ffffff"
+                  BorderThickness="0" CornerRadius="5"
+                  MinHeight="38" Padding="10,5"
+                  HorizontalAlignment="Center"
+                  HorizontalContentAlignment="Center"
+                  Click="OnDismissMissionComplete"/>
+        </StackPanel>
+      </Border>
+      </Grid>
+
+    </Grid>
+    <!-- End map area -->
+
+  </Grid>
+</UserControl>

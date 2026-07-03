@@ -1,0 +1,674 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:setup="using:VGC.Setup"
+             xmlns:controls="using:VGC.Views.Controls"
+             xmlns:views="using:VGC.Views"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.SetupView"
+             x:DataType="vm:SetupViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.setupPanel">
+      <Setter Property="Background" Value="#151f28"/>
+      <Setter Property="BorderBrush" Value="#2f3f4c"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="12"/>
+    </Style>
+    <Style Selector="TextBlock.panelTitle">
+      <Setter Property="Foreground" Value="#f3f6f9"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.panelText">
+      <Setter Property="Foreground" Value="#c9d5df"/>
+    </Style>
+    <Style Selector="TextBlock.groupTitle">
+      <Setter Property="Foreground" Value="#7eb8e0"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontSize" Value="14"/>
+    </Style>
+    <Style Selector="TextBlock.paramLabel">
+      <Setter Property="Foreground" Value="#d0dbe6"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="TextBlock.paramDesc">
+      <Setter Property="Foreground" Value="#8a9fb2"/>
+      <Setter Property="FontSize" Value="11"/>
+    </Style>
+    <Style Selector="TextBlock.paramValue">
+      <Setter Property="Foreground" Value="#34d37b"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.paramMissing">
+      <Setter Property="Foreground" Value="#f0864a"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="TextBox.paramInput">
+      <Setter Property="MinHeight" Value="30"/>
+      <Setter Property="MinWidth" Value="100"/>
+      <Setter Property="Background" Value="#0f161d"/>
+      <Setter Property="Foreground" Value="#e7edf3"/>
+      <Setter Property="BorderBrush" Value="#344654"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="Button.componentButton">
+      <Setter Property="MinHeight" Value="48"/>
+      <Setter Property="Padding" Value="12,8"/>
+      <Setter Property="Background" Value="#17222c"/>
+      <Setter Property="BorderBrush" Value="#2f3f4c"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Foreground" Value="#edf3f8"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+    </Style>
+    <Style Selector="Button.componentButton:pointerover">
+      <Setter Property="Background" Value="#1f2e3a"/>
+    </Style>
+    <Style Selector="Button.componentActive">
+      <Setter Property="Background" Value="#1a3040"/>
+      <Setter Property="BorderBrush" Value="#3498db"/>
+    </Style>
+    <Style Selector="Button.calibButton">
+      <Setter Property="MinHeight" Value="40"/>
+      <Setter Property="Padding" Value="16,8"/>
+      <Setter Property="Background" Value="#1a2c3a"/>
+      <Setter Property="BorderBrush" Value="#3b5060"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Foreground" Value="#edf3f8"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Border.readinessReady">
+      <Setter Property="Background" Value="#1a3d2a"/>
+      <Setter Property="BorderBrush" Value="#34d37b"/>
+    </Style>
+    <Style Selector="Border.readinessWarning">
+      <Setter Property="Background" Value="#3d3a1a"/>
+      <Setter Property="BorderBrush" Value="#f0d35c"/>
+    </Style>
+    <Style Selector="Border.readinessBlocked">
+      <Setter Property="Background" Value="#3d1a1a"/>
+      <Setter Property="BorderBrush" Value="#e74c3c"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*"
+        Background="#101820"
+        Margin="12"
+        RowSpacing="12"
+        SizeChanged="OnSetupViewSizeChanged">
+    <!-- Header -->
+    <Border Classes="setupPanel">
+      <Grid ColumnDefinitions="*,Auto"
+            ColumnSpacing="16">
+        <StackPanel>
+          <TextBlock Text="{Binding Title}"
+                     Foreground="#f5f8fb"
+                     FontSize="20"
+                     FontWeight="SemiBold"/>
+          <TextBlock Text="{Binding Summary}"
+                     Foreground="#92a3b5"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="18"
+                    VerticalAlignment="Center">
+          <TextBlock Classes="panelText" Text="{Binding FirmwareText}"/>
+          <TextBlock Classes="panelText" Text="{Binding VehicleTypeText}"/>
+          <TextBlock Classes="panelText" Text="{Binding AvailableComponentCount, StringFormat='Available {0}'}"/>
+          <TextBlock Classes="panelText" Text="{Binding BlockedComponentCount, StringFormat='Blocked {0}'}"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Main Content: Sidebar + Detail -->
+    <Grid Grid.Row="1"
+          ColumnDefinitions="0.28*,0.72*"
+          ColumnSpacing="12">
+
+      <!-- Left Sidebar: Component List -->
+      <Border x:Name="SetupSidebar"
+              Classes="setupPanel"
+              MinWidth="240">
+        <StackPanel Spacing="8">
+          <Button Classes="componentButton"
+                  Content="Summary"
+                  Click="OnShowSetupSummary"/>
+          <Button Classes="componentButton"
+                  Content="Parameters"
+                  Click="OnShowSetupParameters"
+                  IsEnabled="{Binding CanShowParameters}"/>
+          <Border Background="#243240" Height="1" Margin="0,4"/>
+          <TextBlock Text="{Binding SetupTreeFooterText}"
+                     Foreground="#8a9fb2"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ShowSetupTreeFooter}"/>
+          <ScrollViewer IsVisible="{Binding HasVehicleConnection}">
+            <ItemsControl ItemsSource="{Binding Components}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="setup:VehicleSetupComponentStatus">
+                <Button Classes="componentButton"
+                        Margin="0,2"
+                        Tag="{Binding Id}"
+                        Click="OnComponentButtonClick">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <StackPanel>
+                      <TextBlock Classes="panelTitle" Text="{Binding Title}" FontSize="14"/>
+                      <TextBlock Classes="panelText" Text="{Binding Summary}" FontSize="11" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <Border Grid.Column="1"
+                            Width="10" Height="10"
+                            CornerRadius="5"
+                            VerticalAlignment="Center">
+                      <Border.Background>
+                        <MultiBinding>
+                          <Binding Path="Readiness"/>
+                        </MultiBinding>
+                      </Border.Background>
+                    </Border>
+                  </Grid>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+      <!-- Right Detail Panel -->
+      <Border x:Name="SetupDetailPanel"
+              Grid.Column="1" Classes="setupPanel">
+        <ScrollViewer>
+          <Grid IsVisible="{Binding ShowSetupPanelHost}">
+            <Border Background="#111b24"
+                    BorderBrush="#243240"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    IsVisible="{Binding ShowDisconnectedState}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Vehicle Setup"
+                           Foreground="#f5f8fb"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="Connect a vehicle to begin setup."
+                           Foreground="#d0dbe6"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+            <Border Background="#111b24"
+                    BorderBrush="#243240"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    IsVisible="{Binding ShowMissingParametersState}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Parameters unavailable"
+                           Foreground="#f5f8fb"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding MissingParametersText}"
+                           Foreground="#d0dbe6"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+            <Border Background="#111b24"
+                    BorderBrush="#243240"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    IsVisible="{Binding ShowParametersUnavailableBanner}">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Waiting for parameters"
+                           Foreground="#f5f8fb"
+                           FontSize="18"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding ParametersUnavailableText}"
+                           Foreground="#d0dbe6"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+            <StackPanel IsVisible="{Binding ShowSummaryDetails}"
+                        Spacing="12">
+              <TextBlock Text="Vehicle Summary"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="6">
+                  <TextBlock Text="{Binding SummaryPageText}"
+                             Foreground="#d0dbe6"
+                             TextWrapping="Wrap"/>
+                  <TextBlock Text="{Binding SummaryStatusText}"
+                             Foreground="#7eb8e0"/>
+                  <TextBlock Text="{Binding ParameterReadyText}"
+                             Foreground="#909090"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding ShowParametersReadyBanner}"
+                        Spacing="12">
+              <TextBlock Text="Parameters"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="4">
+                <views:ParameterView DataContext="{Binding ParameterEditor}"/>
+              </Border>
+            </StackPanel>
+
+            <!-- No selection -->
+            <Border Background="#111b24"
+                    BorderBrush="#243240"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="16"
+                    IsVisible="{Binding ShowComponentSelectionHint}">
+              <StackPanel VerticalAlignment="Center"
+                          HorizontalAlignment="Center"
+                          Spacing="4">
+                <TextBlock Text="Select a component from the list"
+                           Foreground="#6b7d8e"
+                           FontSize="16"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="to view and configure its settings"
+                           Foreground="#4e6070"
+                           FontSize="13"
+                           HorizontalAlignment="Center"/>
+              </StackPanel>
+            </Border>
+
+            <Border Background="#111b24"
+                    BorderBrush="#243240"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12"
+                    IsVisible="{Binding ShowSelectedComponentCard}"
+                    Margin="0,0,0,12">
+              <StackPanel Spacing="4">
+                <TextBlock Text="{Binding SelectedComponentCardTitle}"
+                           Foreground="#f5f8fb"
+                           FontSize="16"
+                           FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding SelectedComponentCardSummary}"
+                           Foreground="#d0dbe6"
+                           TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding SelectedComponentCardStatus}"
+                           Foreground="#7eb8e0"
+                           TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Safety Config Detail -->
+            <StackPanel x:Name="SafetyDetailPanel"
+                        Spacing="16"
+                        IsVisible="False">
+              <TextBlock Text="Safety / Failsafe Configuration"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding SafetyConfig.StatusText}"
+                         Foreground="#92a3b5"
+                         TextWrapping="Wrap"/>
+              <TextBlock Text="{Binding LastParameterEditStatus}"
+                         Foreground="#f0d35c"
+                         FontSize="12"
+                         IsVisible="{Binding LastParameterEditStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+              <ItemsControl ItemsSource="{Binding SafetyConfig.Groups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="setup:SafetyConfigGroup">
+                    <Border Background="#111b24"
+                            BorderBrush="#243240"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="12"
+                            Margin="0,4">
+                      <StackPanel Spacing="8">
+                        <TextBlock Classes="groupTitle" Text="{Binding Name}"/>
+                        <TextBlock Classes="paramDesc" Text="{Binding Description}"/>
+                        <ItemsControl ItemsSource="{Binding Parameters}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="setup:SafetyParameterState">
+                              <Grid ColumnDefinitions="200,*,120"
+                                    ColumnSpacing="12"
+                                    Margin="0,4">
+                                <StackPanel>
+                                  <TextBlock Classes="paramLabel" Text="{Binding Definition.Label}"/>
+                                  <TextBlock Classes="paramDesc" Text="{Binding Definition.Description}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                                <Panel Grid.Column="1">
+                                  <!-- FactComboBox for Action/Toggle parameters with EnumOptions -->
+                                  <controls:FactComboBox
+                                      Label="{Binding Definition.Label}"
+                                      ParameterName="{Binding Definition.Name}"
+                                      IsVisible="{Binding HasEnumOptions}"/>
+                                  <!-- FactTextField for Threshold/Timeout/Altitude/Speed parameters -->
+                                  <controls:FactTextField
+                                      Label="{Binding Definition.Label}"
+                                      ParameterName="{Binding Definition.Name}"
+                                      Text="{Binding CurrentValue}"
+                                      Units="{Binding Definition.Units}"
+                                      MinValue="{Binding Definition.Min}"
+                                      MaxValue="{Binding Definition.Max}"
+                                      IsVisible="{Binding !HasEnumOptions}"/>
+                                  <TextBlock Classes="paramMissing"
+                                             Text="{Binding StatusText}"
+                                             IsVisible="{Binding !IsPresent}"/>
+                                </Panel>
+                                <TextBlock Grid.Column="2"
+                                           Classes="paramDesc"
+                                           Text="{Binding Definition.Name}"
+                                           VerticalAlignment="Center"/>
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Button Classes="calibButton"
+                      Content="Save Changes"
+                      HorizontalAlignment="Right"
+                      Click="OnSaveSafetyChanges"/>
+            </StackPanel>
+
+            <!-- Sensors Detail -->
+            <StackPanel x:Name="SensorsDetailPanel"
+                        Spacing="16"
+                        IsVisible="False">
+              <TextBlock Text="Sensor Calibration"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding SensorCalibrationState.StatusText}"
+                         Foreground="#92a3b5"/>
+
+              <!-- Calibration Buttons -->
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="12">
+                  <TextBlock Classes="groupTitle" Text="Available Calibrations"/>
+                  <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Button Classes="calibButton" Content="Compass" Click="OnCalibrateCompass"/>
+                    <Button Grid.Column="1" Classes="calibButton" Content="Accelerometer" Click="OnCalibrateAccel"/>
+                    <Button Grid.Row="1" Classes="calibButton" Content="Gyroscope" Click="OnCalibrateGyro"/>
+                    <Button Grid.Row="1" Grid.Column="1" Classes="calibButton" Content="Level" Click="OnCalibrateLevel"/>
+                  </Grid>
+                </StackPanel>
+              </Border>
+
+              <!-- Progress Bar -->
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12"
+                      IsVisible="{Binding SensorCalibrationState.CalibrationType, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="groupTitle" Text="Calibration Progress"/>
+                  <ProgressBar Value="{Binding SensorCalibrationState.Progress}"
+                               Maximum="1"
+                               Height="8"
+                               Foreground="#3498db"
+                               Background="#1a2c3a"/>
+                  <TextBlock Classes="paramLabel" Text="{Binding SensorCalibrationState.StatusText}"/>
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Classes="calibButton" Content="Confirm" Click="OnConfirmCalibration"/>
+                    <Button Classes="calibButton" Content="Cancel" Click="OnCancelCalibration"/>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- 3x2 Calibration Faces Grid -->
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="groupTitle" Text="Calibration Faces"/>
+                  <Grid ColumnDefinitions="*,*,*"
+                        RowDefinitions="140,140"
+                        ColumnSpacing="8"
+                        RowSpacing="8">
+                    <!-- Row 0: NoseDown, NoseUp, Left -->
+                    <controls:VehicleRotationCal x:Name="CalFaceNoseDown"
+                                                 FaceLabel="Nose Down"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                    <controls:VehicleRotationCal Grid.Column="1"
+                                                 x:Name="CalFaceNoseUp"
+                                                 FaceLabel="Nose Up"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                    <controls:VehicleRotationCal Grid.Column="2"
+                                                 x:Name="CalFaceLeft"
+                                                 FaceLabel="Left"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                    <!-- Row 1: Right, UpsideDown, Level -->
+                    <controls:VehicleRotationCal Grid.Row="1"
+                                                 x:Name="CalFaceRight"
+                                                 FaceLabel="Right"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                    <controls:VehicleRotationCal Grid.Row="1" Grid.Column="1"
+                                                 x:Name="CalFaceUpsideDown"
+                                                 FaceLabel="Upside Down"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                    <controls:VehicleRotationCal Grid.Row="1" Grid.Column="2"
+                                                 x:Name="CalFaceLevel"
+                                                 FaceLabel="Level"
+                                                 StatusText="Incomplete"
+                                                 Status="Idle"/>
+                  </Grid>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Radio Detail -->
+            <StackPanel x:Name="RadioDetailPanel"
+                        Spacing="16"
+                        IsVisible="False">
+              <TextBlock Text="Radio / RC Calibration"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+
+              <!-- Live RC Channel Bars -->
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="groupTitle" Text="RC Channel Values"/>
+                  <ItemsControl ItemsSource="{Binding RadioChannels}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="setup:RadioChannelCalibration">
+                        <Grid ColumnDefinitions="80,*,60"
+                              ColumnSpacing="8"
+                              Margin="0,3">
+                          <TextBlock Classes="paramLabel"
+                                     Text="{Binding Function}"
+                                     VerticalAlignment="Center"/>
+                          <ProgressBar Grid.Column="1"
+                                       Minimum="1000"
+                                       Maximum="2000"
+                                       Value="{Binding Trim}"
+                                       Height="14"
+                                       Foreground="#27ae60"
+                                       Background="#0a1218"/>
+                          <TextBlock Grid.Column="2"
+                                     Classes="paramValue"
+                                     Text="{Binding Trim}"
+                                     VerticalAlignment="Center"
+                                     HorizontalAlignment="Right"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <!-- Channel Table -->
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="groupTitle" Text="Channel Mapping"/>
+                  <Grid ColumnDefinitions="80,80,80,80,*"
+                        ColumnSpacing="12"
+                        Margin="0,4">
+                    <TextBlock Classes="paramLabel" Text="Channel" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Classes="paramLabel" Text="Min" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" Classes="paramLabel" Text="Max" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="3" Classes="paramLabel" Text="Trim" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="4" Classes="paramLabel" Text="Function" FontWeight="SemiBold"/>
+                  </Grid>
+                  <ItemsControl ItemsSource="{Binding RadioChannels}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="setup:RadioChannelCalibration">
+                        <Grid ColumnDefinitions="80,80,80,80,*"
+                              ColumnSpacing="12"
+                              Margin="0,2">
+                          <TextBlock Classes="paramLabel" Text="{Binding Channel, StringFormat='CH {0}'}"/>
+                          <TextBlock Grid.Column="1" Classes="paramValue" Text="{Binding Min}"/>
+                          <TextBlock Grid.Column="2" Classes="paramValue" Text="{Binding Max}"/>
+                          <TextBlock Grid.Column="3" Classes="paramValue" Text="{Binding Trim}"/>
+                          <TextBlock Grid.Column="4" Classes="paramLabel" Text="{Binding Function}"/>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Flight Modes Detail -->
+            <StackPanel x:Name="FlightModesDetailPanel"
+                        Spacing="16"
+                        IsVisible="False">
+              <TextBlock Text="Flight Mode Configuration"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="8">
+                  <TextBlock Classes="groupTitle" Text="Flight Mode Slots"/>
+                  <!-- Column Headers -->
+                  <Grid ColumnDefinitions="60,200,120,80"
+                        ColumnSpacing="12"
+                        Margin="0,4">
+                    <TextBlock Classes="paramLabel" Text="Slot" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="1" Classes="paramLabel" Text="Mode" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" Classes="paramLabel" Text="PWM Range" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="3" Classes="paramLabel" Text="Active" FontWeight="SemiBold"/>
+                  </Grid>
+                  <!-- 6-row mode grid -->
+                  <ItemsControl ItemsSource="{Binding FlightModeMappings}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:FlightModeMapping">
+                        <Grid ColumnDefinitions="60,200,120,80"
+                              ColumnSpacing="12"
+                              Margin="0,3">
+                          <TextBlock Classes="paramLabel" Text="{Binding Slot}"/>
+                          <Panel Grid.Column="1">
+                            <!-- Active mode shown in yellow -->
+                            <TextBlock Text="{Binding ModeName}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="#f0d35c"
+                                       IsVisible="{Binding IsActive}"/>
+                            <!-- Inactive mode shown in standard green -->
+                            <TextBlock Text="{Binding ModeName}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="#34d37b"
+                                       IsVisible="{Binding !IsActive}"/>
+                          </Panel>
+                          <TextBlock Grid.Column="2"
+                                     Classes="paramDesc"
+                                     Text="{Binding PwmRange}"
+                                     VerticalAlignment="Center"/>
+                          <Panel Grid.Column="3"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center">
+                            <!-- Active indicator dot -->
+                            <Border Width="10" Height="10"
+                                    CornerRadius="5"
+                                    Background="#f0d35c"
+                                    IsVisible="{Binding IsActive}"/>
+                            <Border Width="10" Height="10"
+                                    CornerRadius="5"
+                                    Background="#3b5060"
+                                    IsVisible="{Binding !IsActive}"/>
+                          </Panel>
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+
+            <!-- Generic Component Detail (summary, firmware, power, geofence, rally, motors, airframe) -->
+            <StackPanel x:Name="GenericDetailPanel"
+                        Spacing="16"
+                        IsVisible="False">
+              <TextBlock x:Name="GenericDetailTitle"
+                         Foreground="#f5f8fb"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <TextBlock x:Name="GenericDetailSummary"
+                         Foreground="#92a3b5"
+                         TextWrapping="Wrap"/>
+              <Border Background="#111b24"
+                      BorderBrush="#243240"
+                      BorderThickness="1"
+                      CornerRadius="4"
+                      Padding="12">
+                <StackPanel Spacing="8">
+                  <TextBlock x:Name="GenericDetailStatus"
+                             Classes="paramLabel"/>
+                  <TextBlock x:Name="GenericDetailMissing"
+                             Classes="paramMissing"
+                             TextWrapping="Wrap"/>
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </Grid>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

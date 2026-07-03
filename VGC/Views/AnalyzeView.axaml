@@ -1,0 +1,310 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:analyze="using:VGC.Analyze"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.AnalyzeView"
+             x:DataType="vm:AnalyzeViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.analyzePanel">
+      <Setter Property="Background" Value="#151f28"/>
+      <Setter Property="BorderBrush" Value="#2f3f4c"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="Padding" Value="12"/>
+    </Style>
+    <Style Selector="TextBlock.panelTitle">
+      <Setter Property="Foreground" Value="#f3f6f9"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.panelText">
+      <Setter Property="Foreground" Value="#c9d5df"/>
+    </Style>
+    <Style Selector="Button.tabButton">
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="Padding" Value="16,6"/>
+      <Setter Property="Background" Value="#1a2530"/>
+      <Setter Property="BorderBrush" Value="#2f3f4c"/>
+      <Setter Property="Foreground" Value="#92a3b5"/>
+      <Setter Property="CornerRadius" Value="4"/>
+    </Style>
+    <Style Selector="Button.tabButton:pointerover">
+      <Setter Property="Background" Value="#223040"/>
+    </Style>
+    <Style Selector="TextBlock.consoleLine">
+      <Setter Property="Foreground" Value="#c9d5df"/>
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
+      <Setter Property="FontSize" Value="13"/>
+    </Style>
+    <Style Selector="TextBlock.consoleCommand">
+      <Setter Property="Foreground" Value="#3498db"/>
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*"
+        Background="#101820"
+        Margin="12"
+        RowSpacing="12">
+    <!-- Header -->
+    <Border Classes="analyzePanel">
+      <Grid ColumnDefinitions="*,Auto"
+            RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+            RowSpacing="6">
+        <StackPanel>
+          <TextBlock Text="{Binding Title}"
+                     Foreground="#f5f8fb"
+                     FontSize="20"
+                     FontWeight="SemiBold"/>
+          <TextBlock Text="{Binding Summary}"
+                     Foreground="#92a3b5"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="6">
+          <Button Content="Play" Command="{Binding PlayReplayCommand}"/>
+          <Button Content="Pause" Command="{Binding PauseReplayCommand}"/>
+          <Button Content="Step" Command="{Binding StepReplayCommand}"/>
+          <Button Content="Start" Command="{Binding SeekReplayStartCommand}"/>
+          <Button Content="0.5x" Command="{Binding SetReplayHalfSpeedCommand}"/>
+          <Button Content="1x" Command="{Binding SetReplayNormalSpeedCommand}"/>
+          <Button Content="2x" Command="{Binding SetReplayDoubleSpeedCommand}"/>
+        </StackPanel>
+        <TextBlock Grid.Row="1" Text="{Binding ReplayStatusText}" Foreground="#c9d5df"/>
+        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ReplayProgressText}" Foreground="#92a3b5"/>
+        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding ReplayTimelineSummary}" Foreground="#92a3b5"/>
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="2" Text="{Binding DiagnosticSummary.SummaryText}" Foreground="#c9d5df"/>
+        <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="{Binding ReplayWorkflowState.SelectedDetailText}" Foreground="#92a3b5"/>
+      </Grid>
+    </Border>
+
+    <!-- Tab Bar -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+      <Button Classes="tabButton" Content="Inspector" Click="OnSelectInspectorTab"/>
+      <Button Classes="tabButton" Content="MAVLink Console" Click="OnSelectConsoleTab"/>
+      <Button Classes="tabButton" Content="Telemetry Chart" Click="OnSelectChartTab"/>
+    </StackPanel>
+
+    <!-- Tab Content -->
+    <Panel Grid.Row="2">
+      <!-- Inspector Tab -->
+      <Border Classes="analyzePanel" IsVisible="{Binding IsInspectorTab}">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,*" RowSpacing="8">
+          <TextBox Text="{Binding FilterText}"
+                   PlaceholderText="Filter: HEARTBEAT, msg:253, sys:1, comp:1, severity:warning"
+                   Background="#0f161d" Foreground="#f3f6f9"
+                   BorderBrush="#344654" BorderThickness="1"/>
+          <Grid Grid.Row="1" ColumnDefinitions="70,80,120,120,*,100,90,100" ColumnSpacing="12" Margin="0,0,0,8">
+            <TextBlock Classes="panelTitle" Text="System"/>
+            <TextBlock Grid.Column="1" Classes="panelTitle" Text="Component"/>
+            <TextBlock Grid.Column="2" Classes="panelTitle" Text="Message"/>
+            <TextBlock Grid.Column="3" Classes="panelTitle" Text="Name"/>
+            <TextBlock Grid.Column="4" Classes="panelTitle" Text="Fields"/>
+            <TextBlock Grid.Column="5" Classes="panelTitle" Text="Severity"/>
+            <TextBlock Grid.Column="6" Classes="panelTitle" Text="Count"/>
+            <TextBlock Grid.Column="7" Classes="panelTitle" Text="Rate"/>
+          </Grid>
+          <ListBox Grid.Row="2"
+                   ItemsSource="{Binding InspectorRows}"
+                   SelectedItem="{Binding SelectedInspectorRow, Mode=TwoWay}"
+                   Background="#0f161d" BorderBrush="#344654" BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="analyze:MavlinkInspectorRow">
+                <Grid ColumnDefinitions="70,80,120,120,*,100,90,100" ColumnSpacing="12" Margin="0,4">
+                  <TextBlock Classes="panelText" Text="{Binding SystemId}"/>
+                  <TextBlock Grid.Column="1" Classes="panelText" Text="{Binding ComponentId}"/>
+                  <TextBlock Grid.Column="2" Classes="panelText" Text="{Binding MessageId}"/>
+                  <TextBlock Grid.Column="3" Classes="panelText" Text="{Binding MessageName}"/>
+                  <TextBlock Grid.Column="4" Classes="panelText" Text="{Binding FieldSummary}" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Grid.Column="5" Classes="panelText" Text="{Binding Severity}"/>
+                  <TextBlock Grid.Column="6" Classes="panelText" Text="{Binding Count}"/>
+                  <TextBlock Grid.Column="7" Classes="panelText" Text="{Binding RateHz, StringFormat={}{0:F2} Hz}"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Grid Grid.Row="3" ColumnDefinitions="60,90,80,80,120,*,80" ColumnSpacing="12" Margin="0,8,0,0">
+            <TextBlock Classes="panelTitle" Text="#"/>
+            <TextBlock Grid.Column="1" Classes="panelTitle" Text="Time"/>
+            <TextBlock Grid.Column="2" Classes="panelTitle" Text="Delta"/>
+            <TextBlock Grid.Column="3" Classes="panelTitle" Text="Msg"/>
+            <TextBlock Grid.Column="4" Classes="panelTitle" Text="Name"/>
+            <TextBlock Grid.Column="5" Classes="panelTitle" Text="Summary"/>
+            <TextBlock Grid.Column="6" Classes="panelTitle" Text="Bytes"/>
+          </Grid>
+          <ListBox Grid.Row="4"
+                   ItemsSource="{Binding ReplayPacketRows}"
+                   SelectedItem="{Binding SelectedReplayPacketRow, Mode=TwoWay}"
+                   Background="#0f161d" BorderBrush="#344654" BorderThickness="0" MaxHeight="180">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="analyze:ReplayPacketIndexRow">
+                <Grid ColumnDefinitions="60,90,80,80,120,*,80" ColumnSpacing="12" Margin="0,4">
+                  <TextBlock Classes="panelText" Text="{Binding Sequence}"/>
+                  <TextBlock Grid.Column="1" Classes="panelText" Text="{Binding Timestamp}"/>
+                  <TextBlock Grid.Column="2" Classes="panelText" Text="{Binding Delta}"/>
+                  <TextBlock Grid.Column="3" Classes="panelText" Text="{Binding MessageId}"/>
+                  <TextBlock Grid.Column="4" Classes="panelText" Text="{Binding MessageName}"/>
+                  <TextBlock Grid.Column="5" Classes="panelText" Text="{Binding FieldSummary}" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Grid.Column="6" Classes="panelText" Text="{Binding ByteCount}"/>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <!-- MAVLink Console Tab -->
+      <Border Classes="analyzePanel" IsVisible="{Binding IsConsoleTab}">
+        <Grid RowDefinitions="*,Auto" RowSpacing="8">
+          <Border Background="#0a1218"
+                  BorderBrush="#1e2e3c"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Padding="8">
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding ConsoleLines}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:AnalyzeConsoleLine">
+                    <Grid ColumnDefinitions="70,*" Margin="0,1">
+                      <TextBlock Text="{Binding Timestamp}"
+                                 Foreground="#4e6070"
+                                 FontFamily="Cascadia Mono, Consolas, monospace"
+                                 FontSize="11"/>
+                      <TextBlock Grid.Column="1"
+                                 Text="{Binding Text}"
+                                 TextWrapping="Wrap">
+                        <TextBlock.Classes>
+                          <Classes>consoleLine</Classes>
+                        </TextBlock.Classes>
+                      </TextBlock>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+            <TextBox Text="{Binding ConsoleInput}"
+                     PlaceholderText="Enter MAVLink command (NSH)..."
+                     Background="#0f161d"
+                     Foreground="#e7edf3"
+                     BorderBrush="#344654"
+                     FontFamily="Cascadia Mono, Consolas, monospace"/>
+            <Button Grid.Column="1"
+                    Content="Send"
+                    Click="OnSendConsoleCommand"
+                    MinHeight="34"
+                    Padding="16,6"
+                    Background="#1a3040"
+                    BorderBrush="#3498db"
+                    Foreground="#e7edf3"/>
+            <Button Grid.Column="2"
+                    Content="Clear"
+                    Click="OnClearConsole"
+                    MinHeight="34"
+                    Padding="12,6"
+                    Background="#26313d"
+                    BorderBrush="#3b4a59"
+                    Foreground="#92a3b5"/>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- Telemetry Chart Tab -->
+      <Border Classes="analyzePanel" IsVisible="{Binding IsChartTab}">
+        <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Telemetry Data Chart"
+                       Foreground="#f5f8fb"
+                       FontSize="16"
+                       FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding ChartSnapshot.StatusText}"
+                       Foreground="#92a3b5"/>
+          </StackPanel>
+
+          <!-- Chart area (data series list for now, actual graph rendering deferred to chart library) -->
+          <Border Grid.Row="1"
+                  Background="#0a1218"
+                  BorderBrush="#1e2e3c"
+                  BorderThickness="1"
+                  CornerRadius="4"
+                  Padding="12">
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding ChartSnapshot.Series}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="analyze:TelemetryDataSeries">
+                    <Border Background="#111b24"
+                            BorderBrush="#243240"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="10"
+                            Margin="0,4">
+                      <Grid ColumnDefinitions="200,80,80,*" ColumnSpacing="12">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Name}"
+                                     Foreground="#7eb8e0"
+                                     FontWeight="SemiBold"/>
+                          <TextBlock Text="{Binding Units}"
+                                     Foreground="#6b7d8e"
+                                     FontSize="11"/>
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding DataPoints.Count, StringFormat='{}{0} pts'}"
+                                   Foreground="#c9d5df"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   Foreground="#34d37b"
+                                   VerticalAlignment="Center">
+                          <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0:F1} - {1:F1}">
+                              <Binding Path="DataPoints.Count"/>
+                              <Binding Path="DataPoints.Count"/>
+                            </MultiBinding>
+                          </TextBlock.Text>
+                        </TextBlock>
+                        <StackPanel Grid.Column="3"
+                                    Orientation="Horizontal"
+                                    Spacing="4"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Right">
+                          <!-- Sparkline placeholder - actual rendering requires canvas -->
+                          <Border Background="#1a3040"
+                                  Width="200" Height="30"
+                                  CornerRadius="2">
+                            <TextBlock Text="[sparkline]"
+                                       Foreground="#3b5060"
+                                       FontSize="10"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                          </Border>
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+
+          <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+            <Button Content="Clear All"
+                    Click="OnClearChart"
+                    MinHeight="34"
+                    Padding="12,6"
+                    Background="#26313d"
+                    BorderBrush="#3b4a59"
+                    Foreground="#92a3b5"/>
+            <TextBlock Text="{Binding ChartSnapshot.StatusText}"
+                       Foreground="#6b7d8e"
+                       FontSize="12"
+                       VerticalAlignment="Center"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Panel>
+  </Grid>
+</UserControl>

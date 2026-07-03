@@ -1,0 +1,328 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:facts="using:VGC.Facts"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="VGC.Views.ParameterView"
+             x:DataType="vm:ParameterViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.paramPanel">
+      <Setter Property="Background" Value="#333333"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Padding" Value="10"/>
+    </Style>
+    <Style Selector="TextBlock.panelTitle">
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="TextBlock.panelText">
+      <Setter Property="Foreground" Value="#909090"/>
+    </Style>
+    <Style Selector="TextBox.paramSearch">
+      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Background" Value="#222222"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+    </Style>
+    <Style Selector="Button.paramButton">
+      <Setter Property="MinHeight" Value="34"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,*"
+        Background="#222222"
+        Margin="8"
+        RowSpacing="10"
+        SizeChanged="OnParameterViewSizeChanged">
+    <Border Classes="paramPanel">
+      <Grid ColumnDefinitions="*,Auto"
+            ColumnSpacing="8">
+        <StackPanel Orientation="Horizontal"
+                    Spacing="8">
+          <TextBox Classes="paramSearch"
+                   Width="240"
+                   PlaceholderText="{Binding SearchPlaceholderText}"
+                   Text="{Binding SearchText, Mode=TwoWay}"/>
+          <Button Classes="paramButton"
+                  Content="{Binding ClearButtonText}"
+                  Click="OnClearSearch"/>
+          <CheckBox Content="{Binding HideReadOnlyText}"
+                    Foreground="#ffffff"
+                    VerticalAlignment="Center"
+                    IsChecked="{Binding HideReadOnly, Mode=TwoWay}"
+                    IsVisible="{Binding ShowHideReadOnlyToggle}"/>
+        </StackPanel>
+        <Button Grid.Column="1"
+                Classes="paramButton"
+                Content="{Binding ParameterToolsButtonText}"
+                Click="OnToggleToolsMenu"
+                IsVisible="{Binding ShowToolsButton}"/>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            Classes="paramPanel">
+      <Grid>
+        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto"
+              ColumnSpacing="8">
+          <Button Classes="paramButton" Content="{Binding FullListText}" Click="OnShowFullList"/>
+          <Button Grid.Column="1" Classes="paramButton" Content="{Binding ModifiedText}" Click="OnShowModifiedList"/>
+          <Button Grid.Column="2" Classes="paramButton" Content="{Binding FavoritesText}" Click="OnShowFavoritesList"/>
+          <TextBlock Grid.Column="3"
+                     Text="{Binding ParameterDownloadSummaryText}"
+                     Foreground="#48d6ff"
+                     VerticalAlignment="Center"
+                     Margin="12,0,0,0"
+                     IsVisible="{Binding ShowParameterDownloadSummary}"/>
+          <TextBlock Grid.Column="4"
+                     Text="{Binding ParameterFilterSummaryText}"
+                     Foreground="#909090"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding ShowParameterFilterSummary}"/>
+        </Grid>
+
+        <Border HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,42,0,0"
+                Padding="10"
+                Background="#282828"
+                BorderBrush="#4a4a4a"
+                BorderThickness="1"
+                IsVisible="{Binding ShowParameterToolsPopup}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding ParameterToolsHeaderText}"
+                       Foreground="#ffffff"
+                       FontWeight="SemiBold"/>
+            <Button Classes="paramButton"
+                    Content="{Binding RefreshToolText}"
+                    Click="OnRefreshParameters"
+                    IsVisible="{Binding ShowRefreshTool}"/>
+            <Button Classes="paramButton"
+                    Content="{Binding ClearFavoritesToolText}"
+                    Click="OnClearFavorites"
+                    IsVisible="{Binding ShowClearFavoritesTool}"/>
+            <Button Classes="paramButton"
+                    Content="{Binding RebootToolText}"
+                    Click="OnRebootVehicle"
+                    IsVisible="{Binding ShowRebootTool}"/>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2"
+          ColumnDefinitions="Auto,*"
+          ColumnSpacing="10">
+      <Border x:Name="ParameterGroupPanel"
+              Classes="paramPanel"
+              IsVisible="{Binding ShowParameterGroupPanel}">
+        <Grid RowDefinitions="Auto,*,Auto"
+              RowSpacing="8">
+          <TextBlock Classes="panelTitle" Text="{Binding ParameterGroupHeaderText}"/>
+          <ListBox Grid.Row="1"
+                   ItemsSource="{Binding Categories}"
+                   SelectedItem="{Binding SelectedCategory, Mode=TwoWay}"
+                   Background="#222222"
+                   BorderBrush="#4a4a4a"/>
+          <TextBlock Grid.Row="2"
+                     Text="{Binding SearchFilterHintText}"
+                     Foreground="#909090"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ShowSearchFilterHint}"/>
+        </Grid>
+      </Border>
+
+      <Grid Grid.Column="1"
+            ColumnDefinitions="0.62*,0.38*"
+            ColumnSpacing="10">
+        <Border Classes="paramPanel">
+          <Grid RowDefinitions="Auto,Auto,Auto,*"
+                RowSpacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="panelTitle" Text="{Binding ParameterRowsHeaderText}"/>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding TableRowsCountLabelText}"
+                         Foreground="#909090"
+                         VerticalAlignment="Center"/>
+            </Grid>
+            <TextBlock Grid.Row="1"
+                       Text="{Binding TableMetadataText}"
+                       Foreground="#909090"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding ShowTableMetadataText}"/>
+            <Border Grid.Row="2"
+                    Background="#282828"
+                    BorderBrush="#4a4a4a"
+                    BorderThickness="1"
+                    Padding="8,6"
+                    IsVisible="{Binding ShowTableHeadersRow}">
+              <Grid ColumnDefinitions="40,1.05*,1.1*,0.7*,0.8*,0.8*"
+                    ColumnSpacing="8">
+                <TextBlock Text="{Binding TableHeaderFavoriteText}" Foreground="#ffffff" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Text="{Binding TableHeaderNameText}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="2" Text="{Binding TableHeaderLabelText}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="3" Text="{Binding TableHeaderTypeText}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="4" Text="{Binding TableHeaderValueText}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                <TextBlock Grid.Column="5" Text="{Binding TableHeaderStateText}" Foreground="#ffffff" FontWeight="SemiBold"/>
+              </Grid>
+            </Border>
+            <ListBox Grid.Row="3"
+                     ItemsSource="{Binding TableRows}"
+                     SelectedItem="{Binding SelectedTableRow, Mode=TwoWay}"
+                     Background="#222222"
+                     BorderBrush="#4a4a4a"
+                     IsVisible="{Binding ShowTableRowsBody}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ParameterTableRow">
+                  <Grid ColumnDefinitions="40,1.05*,1.1*,0.7*,0.8*,0.8*"
+                        ColumnSpacing="8"
+                        Margin="0,4">
+                    <TextBlock Text="{Binding FavoriteMarker}"
+                               Foreground="#f9d838"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Name}" Foreground="#ffffff" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Column="2" Text="{Binding Label}" Foreground="#909090" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="3" Text="{Binding Type}" Foreground="#909090" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="4" Text="{Binding Value}" Foreground="#48d6ff" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Grid.Column="5" Text="{Binding State}" Foreground="#909090" TextTrimming="CharacterEllipsis"/>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Border Grid.Row="2"
+                    Background="#222222"
+                    BorderBrush="#4a4a4a"
+                    BorderThickness="1"
+                    Padding="12"
+                    IsVisible="{Binding ShowParameterEmptyState}">
+              <TextBlock Text="{Binding ParameterEmptyStateText}"
+                         Foreground="#909090"
+                         TextWrapping="Wrap"/>
+            </Border>
+          </Grid>
+        </Border>
+
+        <Border x:Name="ParameterDetailPanel"
+                Grid.Column="1"
+                Classes="paramPanel">
+          <Grid RowDefinitions="Auto,*">
+            <Grid ColumnDefinitions="*,Auto,Auto"
+                  ColumnSpacing="8">
+              <TextBlock Text="{Binding ParameterDetailsHeaderText}"
+                         Foreground="#ffffff"
+                         FontSize="18"
+                         FontWeight="SemiBold"/>
+              <TextBlock Grid.Column="1"
+                         Text="{Binding ParameterFavoriteDisplayText}"
+                         Foreground="#48d6ff"
+                         VerticalAlignment="Center"
+                         IsVisible="{Binding ShowFavoriteStatusText}"/>
+              <Button Grid.Column="2"
+                      Classes="paramButton"
+                      Content="{Binding SelectedParameterFavoriteText}"
+                      Click="OnToggleSelectedFavorite"
+                      IsVisible="{Binding ShowParameterFavoriteButton}"/>
+            </Grid>
+
+            <ScrollViewer Grid.Row="1">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding DetailEmptyText}"
+                           Foreground="#909090"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding ShowDetailEmptyState}"/>
+
+                <StackPanel Spacing="8"
+                            IsVisible="{Binding ShowDetailPanel}">
+                  <TextBlock Text="{Binding ParameterTitleDisplayText}"
+                             Foreground="#ffffff"
+                             FontSize="18"
+                             FontWeight="SemiBold"/>
+                  <TextBlock Text="{Binding ParameterNameDisplayText}"
+                             Foreground="#48d6ff"/>
+                  <TextBlock Text="{Binding ParameterDescriptionDisplayText}"
+                             Foreground="#909090"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding ShowParameterDescription}"/>
+                  <TextBlock Text="{Binding ParameterTypeDisplayText, StringFormat='Type: {0}'}"
+                             Foreground="#909090"
+                             IsVisible="{Binding ShowParameterType}"/>
+                  <TextBlock Text="{Binding ParameterValueDisplayText, StringFormat='Value: {0}'}"
+                             Foreground="#ffffff"
+                             IsVisible="{Binding ShowParameterValue}"/>
+                  <TextBlock Text="{Binding ParameterUnitsDisplayText, StringFormat='Units: {0}'}"
+                             Foreground="#909090"
+                             IsVisible="{Binding ShowParameterUnits}"/>
+                  <TextBlock Text="{Binding ParameterRangeDisplayText, StringFormat='Range: {0}'}"
+                             Foreground="#909090"
+                             IsVisible="{Binding ShowParameterRange}"/>
+                  <TextBlock Text="{Binding ParameterEnumDisplayText, StringFormat='Enum: {0}'}"
+                             Foreground="#909090"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding ShowParameterEnumValues}"/>
+                  <TextBlock Text="{Binding ParameterCacheDisplayText, StringFormat='Cache: {0}'}"
+                             Foreground="#909090"
+                             IsVisible="{Binding ShowParameterCacheState}"/>
+                  <TextBlock Text="{Binding ParameterWriteStateDisplayText}"
+                             Foreground="#909090"
+                             IsVisible="{Binding ShowParameterWriteState}"/>
+                  <TextBlock Text="{Binding ParameterWriteErrorDisplayText}"
+                             Foreground="#f0864a"
+                             TextWrapping="Wrap"
+                             IsVisible="{Binding ShowSelectedParameterWriteError}"/>
+                  <TextBlock Text="{Binding ParameterRebootDisplayText}"
+                             Foreground="#f9d838"
+                             IsVisible="{Binding ShowSelectedParameterRebootHint}"/>
+                  <Button Classes="paramButton"
+                          Content="{Binding EditButtonText}"
+                          Click="OnOpenEditor"
+                          IsEnabled="{Binding HasSelectedParameter}"
+                          IsVisible="{Binding ShowParameterEditButton}"/>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </Border>
+      </Grid>
+    </Grid>
+
+    <Border Background="#AA000000"
+            Grid.RowSpan="3"
+            IsVisible="{Binding ShowParameterEditorDialog}">
+      <Border x:Name="ParameterEditorDialog"
+              Classes="paramPanel"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center">
+        <StackPanel Spacing="8">
+          <TextBlock Text="{Binding ParameterEditorTitleText}"
+                     Foreground="#ffffff"
+                     FontSize="18"
+                     FontWeight="SemiBold"/>
+          <TextBlock Text="{Binding SelectedParameterName}"
+                     Foreground="#48d6ff"/>
+          <TextBox Classes="paramSearch"
+                   Text="{Binding EditText, Mode=TwoWay}"/>
+          <TextBlock Text="{Binding SelectedParameterDescription}"
+                     Foreground="#909090"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding ShowParameterEditorDescription}"/>
+          <TextBlock Text="{Binding ParameterEditorRangeText, StringFormat='Range: {0}'}"
+                     Foreground="#909090"
+                     IsVisible="{Binding ShowParameterEditorRange}"/>
+          <StackPanel Orientation="Horizontal"
+                      HorizontalAlignment="Right"
+                      Spacing="8">
+            <Button Classes="paramButton" Content="{Binding ParameterEditorCancelText}" Click="OnCancelEditor"/>
+            <Button Classes="paramButton" Content="{Binding ParameterEditorSaveText}" Click="OnSaveEditor"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

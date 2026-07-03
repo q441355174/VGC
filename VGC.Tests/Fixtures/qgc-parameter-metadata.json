@@ -1,0 +1,45 @@
+{
+  "packages": [
+    {
+      "firmwareId": "PX4",
+      "vehicleType": "Quadrotor",
+      "metadataPackageVersion": "test",
+      "parameters": [
+        {
+          "name": "MPC_XY_VEL",
+          "componentId": 1,
+          "group": "Multicopter Position Control",
+          "label": "XY velocity",
+          "description": "Maximum horizontal velocity",
+          "units": "m/s",
+          "min": 0,
+          "max": 20,
+          "rebootRequired": true,
+          "values": [
+            { "value": 0, "label": "Disabled" },
+            { "value": 1, "label": "Enabled" }
+          ]
+        },
+        {
+          "name": "SYS_ID",
+          "group": "System",
+          "label": "System ID",
+          "description": "MAVLink system id",
+          "min": 1,
+          "max": 255
+        }
+      ]
+    },
+    {
+      "firmwareId": "ArduPilot",
+      "vehicleType": "Quadrotor",
+      "parameters": [
+        {
+          "name": "PSC_VELXY_MAX",
+          "group": "Position Control",
+          "label": "XY velocity max"
+        }
+      ]
+    }
+  ]
+}

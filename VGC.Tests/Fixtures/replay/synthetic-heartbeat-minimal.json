@@ -1,0 +1,33 @@
+{
+  "file": "synthetic-heartbeat-minimal.tlog",
+  "format": "QGC telemetry log replay: repeated 8-byte big-endian timestamp in microseconds followed by one MAVLink frame",
+  "source": "Synthetic VGC-generated MAVLink frames",
+  "generated": "2026-06-26",
+  "license": "Project test fixture; no QGC source, assets, or real flight data copied",
+  "privacy": "No real flight, vehicle, operator, or location data",
+  "sha256": "6E42F8D11CD83A3C68FD7944B84D091F7611894AC229E7403391FE5E52CFF60D",
+  "packet_count": 2,
+  "timestamps_micros": [1000000, 1250000],
+  "messages": [
+    {
+      "index": 0,
+      "protocol": "MAVLink v1",
+      "name": "HEARTBEAT",
+      "message_id": 0,
+      "system_id": 9,
+      "component_id": 1,
+      "autopilot": "PX4",
+      "vehicle_type": "Quadrotor"
+    },
+    {
+      "index": 1,
+      "protocol": "MAVLink v1",
+      "name": "HEARTBEAT",
+      "message_id": 0,
+      "system_id": 10,
+      "component_id": 1,
+      "autopilot": "PX4",
+      "vehicle_type": "Quadrotor"
+    }
+  ]
+}

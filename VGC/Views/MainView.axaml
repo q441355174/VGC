@@ -1,0 +1,194 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:VGC.ViewModels"
+             xmlns:controls="using:VGC.Views.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="1280"
+             d:DesignHeight="800"
+             x:Class="VGC.Views.MainView"
+             x:DataType="vm:ShellViewModel">
+  <UserControl.Styles>
+    <Style Selector="Button.chromeButton">
+      <Setter Property="MinHeight" Value="38"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="Button.viewButton">
+      <Setter Property="MinHeight" Value="40"/>
+      <Setter Property="MinWidth" Value="72"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Background" Value="#464646"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+    </Style>
+    <Style Selector="TextBox.linkInput, ComboBox.linkInput, NumericUpDown.linkInput">
+      <Setter Property="MinHeight" Value="32"/>
+      <Setter Property="Background" Value="#222222"/>
+      <Setter Property="Foreground" Value="#ffffff"/>
+      <Setter Property="BorderBrush" Value="#4a4a4a"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Background="#222222" SizeChanged="OnMainViewSizeChanged">
+    <ContentControl Content="{Binding CurrentWorkspace}"/>
+
+    <Border x:Name="ToolSelectPopup"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="8,56,0,0"
+            Background="#F1222222"
+            BorderBrush="#4a4a4a"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="8"
+            ZIndex="100"
+            IsVisible="{Binding ShowToolSelect}">
+      <StackPanel Spacing="6">
+        <Button Classes="chromeButton" Content="Analyze" Command="{Binding ShowAnalyzeCommand}"/>
+        <Button Classes="chromeButton" Content="Setup" Command="{Binding ShowSetupCommand}"/>
+        <Button Classes="chromeButton" Content="Settings" Command="{Binding ShowSettingsCommand}"/>
+        <Button Classes="chromeButton" Content="Close" Command="{Binding CloseToolSelectCommand}"/>
+      </StackPanel>
+    </Border>
+
+    <controls:ToolDrawerHost x:Name="ToolDrawerHostControl"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Background="#222222"
+                              IsOpen="{Binding IsToolDrawerActive}"
+                              ZIndex="50"
+                              IsVisible="{Binding IsToolDrawerActive}"
+                              Title="{Binding ToolDrawerTitle}"
+                              IconText="{Binding ToolDrawerIcon}">
+      <Grid RowDefinitions="48,*">
+        <Border Background="#222222"
+                BorderBrush="#4a4a4a"
+                BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="Auto,Auto,*"
+                ColumnSpacing="10"
+                Margin="10,0">
+            <Button Width="48"
+                    Height="48"
+                    Background="#4a2c6d"
+                    BorderThickness="0"
+                    Command="{Binding ShowToolDrawerCommand}">
+              <TextBlock Text="VGC"
+                         Foreground="#ffffff"
+                         FontWeight="Bold"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"/>
+            </Button>
+            <Button Grid.Column="1"
+                    Classes="chromeButton"
+                    Content="←"
+                    Command="{Binding CloseToolDrawerCommand}"
+                    VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="2"
+                       Text="{Binding ToolDrawerTitle}"
+                       Foreground="#ffffff"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       VerticalAlignment="Center"/>
+          </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="1"
+                        Content="{Binding CurrentToolWorkspace}"/>
+      </Grid>
+    </controls:ToolDrawerHost>
+
+    <Border x:Name="IndicatorDrawerBorder"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="0,56,0,0"
+            Background="#E6222222"
+            BorderBrush="#4a4a4a"
+            BorderThickness="1"
+            CornerRadius="5"
+            Padding="10"
+            ZIndex="60"
+            IsVisible="{Binding IsIndicatorDrawerActive}">
+      <Grid>
+        <Button x:Name="IndicatorExpandButton"
+                Content="&gt;"
+                Width="28"
+                Height="28"
+                CornerRadius="14"
+                Background="#464646"
+                BorderBrush="#ffffff"
+                Foreground="#ffffff"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,-24,-24,0"
+                Command="{Binding ToggleIndicatorDrawerExpandedCommand}"
+                IsVisible="{Binding ShowIndicatorDrawerExpandButton}"/>
+        <Grid ColumnDefinitions="*,Auto,*"
+              ColumnSpacing="10">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding IndicatorDrawerTitle}"
+                         Foreground="#ffffff"
+                         FontWeight="SemiBold"
+                         FontSize="16"/>
+              <Button Grid.Column="1"
+                      Classes="chromeButton"
+                      Content="Close"
+                      Command="{Binding CloseIndicatorDrawerCommand}"/>
+            </Grid>
+            <TextBlock Text="{Binding IndicatorDrawerWaitingText}"
+                       Foreground="#909090"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding IndicatorDrawerWaitForParameters}"/>
+            <TextBlock Text="{Binding IndicatorDrawerText}"
+                       Foreground="#d0d0d0"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding !IndicatorDrawerWaitForParameters}"/>
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+              <Button Classes="chromeButton"
+                      Content="{Binding IndicatorPrimaryActionText}"
+                      Command="{Binding IndicatorPrimaryActionCommand}"
+                      IsVisible="{Binding ShowIndicatorPrimaryAction}"/>
+              <Button Classes="chromeButton"
+                      Content="{Binding IndicatorSecondaryActionText}"
+                      Command="{Binding IndicatorSecondaryActionCommand}"
+                      IsVisible="{Binding ShowIndicatorSecondaryAction}"/>
+            </StackPanel>
+          </StackPanel>
+          <Border Grid.Column="1"
+                  Width="1"
+                  Background="#4a4a4a"
+                  IsVisible="{Binding IsIndicatorDrawerExpanded}"/>
+          <TextBlock Grid.Column="2"
+                     Text="{Binding IndicatorDrawerExpandedText}"
+                     Foreground="#d0d0d0"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding IsIndicatorDrawerExpanded}"/>
+        </Grid>
+      </Grid>
+    </Border>
+
+    <Border HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Margin="0,0,0,24"
+            Padding="16,10"
+            CornerRadius="6"
+            IsVisible="{Binding ShowToast}"
+            Background="#E6c0392b"
+            BorderBrush="#e74c3c"
+            BorderThickness="1">
+      <TextBlock Text="{Binding ToastText}"
+                 Foreground="White"
+                 FontSize="13"
+                 FontWeight="SemiBold"/>
+    </Border>
+  </Grid>
+</UserControl>

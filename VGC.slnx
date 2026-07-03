@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="VGC.Android/VGC.Android.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="VGC.Desktop/VGC.Desktop.csproj" />
+  <Project Path="VGC.Tests/VGC.Tests.csproj" />
+  <Project Path="VGC.Tools/VGC.Tools.csproj" />
+  <Project Path="VGC/VGC.csproj" />
+</Solution>
