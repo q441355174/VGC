@@ -8,6 +8,23 @@ using VGC.Vehicles;
 
 namespace VGC.ViewModels;
 
+public enum SetupPageKind
+{
+    Summary,
+    Parameters,
+    Component
+}
+
+public enum SetupDetailTabKind
+{
+    None,
+    Safety,
+    Sensors,
+    Radio,
+    FlightModes,
+    Generic
+}
+
 public sealed class SetupViewModel : ViewModelBase
 {
     private readonly MultiVehicleManager _vehicles;
@@ -36,9 +53,8 @@ public sealed class SetupViewModel : ViewModelBase
     private SensorCalibrationSnapshot _sensorCalibrationSnapshot;
     private IReadOnlyList<RadioChannelCalibration> _radioChannels = [];
     private IReadOnlyList<FlightModeMapping> _flightModeMappings = [];
-    private string _selectedDetailTab = "none";
-    private bool _showSummaryPage = true;
-    private bool _showParametersPage;
+    private SetupPageKind _pageKind = SetupPageKind.Summary;
+    private SetupDetailTabKind _detailTabKind = SetupDetailTabKind.None;
     private string _lastParameterEditStatus = "";
 
     public SetupViewModel(
@@ -105,15 +121,32 @@ public sealed class SetupViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _selectedComponent, value);
+            PageKind = value is null ? PageKind : SetupPageKind.Component;
             OnComponentSelected(value);
         }
     }
 
-    public string SelectedDetailTab
+    public SetupPageKind PageKind
     {
-        get => _selectedDetailTab;
-        private set => this.RaiseAndSetIfChanged(ref _selectedDetailTab, value);
+        get => _pageKind;
+        private set => this.RaiseAndSetIfChanged(ref _pageKind, value);
     }
+
+    public SetupDetailTabKind DetailTabKind
+    {
+        get => _detailTabKind;
+        private set => this.RaiseAndSetIfChanged(ref _detailTabKind, value);
+    }
+
+    public string SelectedDetailTab => DetailTabKind switch
+    {
+        SetupDetailTabKind.Safety => "safety",
+        SetupDetailTabKind.Sensors => "sensors",
+        SetupDetailTabKind.Radio => "radio",
+        SetupDetailTabKind.FlightModes => "flight-modes",
+        SetupDetailTabKind.Generic => SelectedComponent?.Id ?? "none",
+        _ => "none"
+    };
 
     public SafetyConfigProjection? SafetyConfig
     {
@@ -165,50 +198,36 @@ public sealed class SetupViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _joystickConfigSnapshot, value);
     }
 
-    public bool HasDetailView => _selectedComponent is not null && _selectedDetailTab != "none";
+    public bool HasDetailView => PageKind == SetupPageKind.Component && DetailTabKind != SetupDetailTabKind.None;
 
-    public bool ShowSummaryPage
-    {
-        get => _showSummaryPage;
-        private set => this.RaiseAndSetIfChanged(ref _showSummaryPage, value);
-    }
+    public bool ShowSummaryPage => PageKind == SetupPageKind.Summary;
 
-    public bool ShowParametersPage
-    {
-        get => _showParametersPage;
-        private set => this.RaiseAndSetIfChanged(ref _showParametersPage, value);
-    }
+    public bool ShowParametersPage => PageKind == SetupPageKind.Parameters;
 
     public string SummaryPageText => $"{Summary}\n{FirmwareText}\n{VehicleTypeText}";
 
     public void ShowSummary()
     {
-        SelectedComponent = null;
-        SelectedDetailTab = "none";
-        ShowSummaryPage = true;
-        ShowParametersPage = false;
-        this.RaisePropertyChanged(nameof(HasDetailView));
+        SelectSetupPage(SetupPageKind.Summary);
     }
 
     public void ShowParameters()
     {
-        ShowSummaryPage = false;
-        ShowParametersPage = true;
+        SelectSetupPage(SetupPageKind.Parameters);
     }
 
     public void HideSpecialPages()
     {
-        ShowSummaryPage = false;
-        ShowParametersPage = false;
+        SelectSetupPage(SetupPageKind.Component, _selectedComponent, _detailTabKind);
     }
 
     public bool ParametersReady => _vehicles.ActiveVehicle?.ParameterManager.Count > 0;
 
     public string ParametersStatusText => ParametersReady ? "Parameters ready" : "Waiting for parameters...";
 
-    public bool IsSummarySelected => ShowSummaryPage;
+    public bool IsSummarySelected => PageKind == SetupPageKind.Summary;
 
-    public bool IsParametersSelected => ShowParametersPage;
+    public bool IsParametersSelected => PageKind == SetupPageKind.Parameters;
 
     public string ComponentTreeHeaderText => "Vehicle Setup";
 
@@ -236,7 +255,7 @@ public sealed class SetupViewModel : ViewModelBase
 
     public bool ShowSetupStateSummary => true;
 
-    public bool IsComponentSelected(string componentId) => !ShowSummaryPage && !ShowParametersPage && string.Equals(SelectedComponent?.Id, componentId, StringComparison.Ordinal);
+    public bool IsComponentSelected(string componentId) => PageKind == SetupPageKind.Component && string.Equals(SelectedComponent?.Id, componentId, StringComparison.Ordinal);
 
     public string ComponentReadinessText(string componentId) => Components.FirstOrDefault(component => string.Equals(component.Id, componentId, StringComparison.Ordinal))?.Readiness.ToString() ?? string.Empty;
 
@@ -919,12 +938,20 @@ public sealed class SetupViewModel : ViewModelBase
     {
         if (component is null)
         {
-            SelectedDetailTab = "none";
-            this.RaisePropertyChanged(nameof(HasDetailView));
+            DetailTabKind = SetupDetailTabKind.None;
+            RaiseSetupNavigationProperties();
             return;
         }
 
-        SelectedDetailTab = component.Id;
+        DetailTabKind = component.Id switch
+        {
+            "safety" => SetupDetailTabKind.Safety,
+            "sensors" => SetupDetailTabKind.Sensors,
+            "radio" => SetupDetailTabKind.Radio,
+            "flight-modes" => SetupDetailTabKind.FlightModes,
+            _ => SetupDetailTabKind.Generic
+        };
+
         switch (component.Id)
         {
             case "safety":
@@ -950,7 +977,34 @@ public sealed class SetupViewModel : ViewModelBase
                 break;
         }
 
+        RaiseSetupNavigationProperties();
+    }
+
+    private void SelectSetupPage(SetupPageKind page, VehicleSetupComponentStatus? component = null, SetupDetailTabKind? detailTab = null)
+    {
+        PageKind = page;
+        if (!ReferenceEquals(_selectedComponent, component))
+        {
+            this.RaiseAndSetIfChanged(ref _selectedComponent, component, nameof(SelectedComponent));
+        }
+        DetailTabKind = detailTab ?? (page == SetupPageKind.Component && component is not null ? DetailTabKind : SetupDetailTabKind.None);
+        RaiseSetupNavigationProperties();
+    }
+
+    private void RaiseSetupNavigationProperties()
+    {
+        this.RaisePropertyChanged(nameof(SelectedDetailTab));
         this.RaisePropertyChanged(nameof(HasDetailView));
+        this.RaisePropertyChanged(nameof(ShowSummaryPage));
+        this.RaisePropertyChanged(nameof(ShowParametersPage));
+        this.RaisePropertyChanged(nameof(IsSummarySelected));
+        this.RaisePropertyChanged(nameof(IsParametersSelected));
+        this.RaisePropertyChanged(nameof(HasSpecialPageSelection));
+        this.RaisePropertyChanged(nameof(HasComponentSelection));
+        this.RaisePropertyChanged(nameof(SpecialPageSelectionText));
+        this.RaisePropertyChanged(nameof(SetupSelectionSummaryText));
+        this.RaisePropertyChanged(nameof(SetupDetailModeText));
+        this.RaisePropertyChanged(nameof(SelectedComponentId));
     }
 
     private void RefreshSafetyConfig()

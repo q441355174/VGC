@@ -2,7 +2,9 @@ namespace VGC.Maps;
 
 public sealed class MapInteractionState
 {
-    private const double DefaultZoomLevel = 16;
+    private const double FollowZoomLevel = 16;
+    private const double DefaultZoomLevel = 12;
+    private static readonly MapCoordinate DefaultCenter = new(39.9042, 116.4074);
     private MapViewport? _manualViewport;
 
     public bool IsFollowingVehicle { get; private set; } = true;
@@ -11,11 +13,11 @@ public sealed class MapInteractionState
     {
         if (IsFollowingVehicle && activeVehicleCoordinate is not null)
         {
-            return new MapViewport(activeVehicleCoordinate, _manualViewport?.ZoomLevel ?? DefaultZoomLevel);
+            return new MapViewport(activeVehicleCoordinate, _manualViewport?.ZoomLevel ?? FollowZoomLevel);
         }
 
         return _manualViewport
-            ?? new MapViewport(activeVehicleCoordinate ?? new MapCoordinate(0, 0), DefaultZoomLevel);
+            ?? new MapViewport(activeVehicleCoordinate ?? DefaultCenter, DefaultZoomLevel);
     }
 
     public void MarkManualViewport(MapViewport viewport)

@@ -7,6 +7,7 @@ using VGC.Mavlink;
 using VGC.Payload;
 using VGC.Setup;
 using VGC.Vehicles;
+using VGC.Views.Controls;
 
 namespace VGC.ViewModels;
 
@@ -75,7 +76,7 @@ public sealed class FlyViewModel : ViewModelBase
         _linkManager = linkManager;
         _mavlinkProtocol = mavlinkProtocol;
         _multiVehicleManager = multiVehicleManager;
-        _mapProviderHost = mapProviderHost ?? MapProviderHost.CreateLocalOnly();
+        _mapProviderHost = mapProviderHost ?? MapProviderHost.CreateDesktopDefault();
         _videoRuntime = videoRuntime ?? new VideoStreamRuntimeController();
         _cameraRuntime = cameraRuntime ?? new CameraRuntimeController();
         _gimbalRuntime = gimbalRuntime ?? new GimbalRuntimeController();
@@ -578,6 +579,33 @@ public sealed class FlyViewModel : ViewModelBase
 
     public string MapZoomText => $"Zoom {MapDisplayFrame.Viewport.ZoomLevel:F0}";
 
+    public MapGeoPoint FlightMapCenter => new(MapDisplayFrame.Viewport.Center.Latitude, MapDisplayFrame.Viewport.Center.Longitude, MapDisplayFrame.Viewport.Center.AltitudeMeters ?? 0);
+
+    public double FlightMapZoomLevel => MapDisplayFrame.Viewport.ZoomLevel;
+
+    public double FlightMapScaleLatitude => MapDisplayFrame.Viewport.Center.Latitude;
+
+    public IReadOnlyList<VehicleMapMarker> FlightMapVehicles => ActiveVehicle?.Coordinate is { } coordinate
+        ?
+        [
+            new VehicleMapMarker(
+                new MapGeoPoint(coordinate.Latitude, coordinate.Longitude, coordinate.AltitudeMeters ?? 0),
+                ActiveVehicle.HeadingDegrees ?? 0,
+                0,
+                $"Vehicle {ActiveVehicle.Id}",
+                true,
+                Avalonia.Media.Colors.Green)
+        ]
+        : [];
+
+    public IReadOnlyList<MapGeoPoint> FlightMapMissionPath => _trajectory
+        .Select(static point => new MapGeoPoint(point.Latitude, point.Longitude, point.AltitudeMeters ?? 0))
+        .ToArray();
+
+    public IReadOnlyList<RallyPointMarker> FlightMapHomeMarkers => _homeCoordinate is { } home
+        ? [new RallyPointMarker(new MapGeoPoint(home.Latitude, home.Longitude, home.AltitudeMeters ?? 0), "H")]
+        : [];
+
     public bool HasMapVehicle => MapDisplayFrame.HasActiveVehicle;
 
     public bool HasMapHome => MapDisplayFrame.Home is not null;
@@ -901,6 +929,12 @@ public sealed class FlyViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(MapAvailableProvidersText));
         this.RaisePropertyChanged(nameof(MapCenterText));
         this.RaisePropertyChanged(nameof(MapZoomText));
+        this.RaisePropertyChanged(nameof(FlightMapCenter));
+        this.RaisePropertyChanged(nameof(FlightMapZoomLevel));
+        this.RaisePropertyChanged(nameof(FlightMapScaleLatitude));
+        this.RaisePropertyChanged(nameof(FlightMapVehicles));
+        this.RaisePropertyChanged(nameof(FlightMapMissionPath));
+        this.RaisePropertyChanged(nameof(FlightMapHomeMarkers));
         this.RaisePropertyChanged(nameof(HasMapVehicle));
         this.RaisePropertyChanged(nameof(HasMapHome));
         this.RaisePropertyChanged(nameof(HasMapTrajectory));

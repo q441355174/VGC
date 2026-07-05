@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VGC.ViewModels"
              xmlns:analyze="using:VGC.Analyze"
+             xmlns:controls="using:VGC.Views.Controls"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              x:Class="VGC.Views.AnalyzeView"
@@ -83,9 +84,9 @@
 
     <!-- Tab Bar -->
     <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
-      <Button Classes="tabButton" Content="Inspector" Click="OnSelectInspectorTab"/>
-      <Button Classes="tabButton" Content="MAVLink Console" Click="OnSelectConsoleTab"/>
-      <Button Classes="tabButton" Content="Telemetry Chart" Click="OnSelectChartTab"/>
+      <Button Classes="tabButton" Content="Inspector" Command="{Binding ShowInspectorTabCommand}"/>
+      <Button Classes="tabButton" Content="MAVLink Console" Command="{Binding ShowConsoleTabCommand}"/>
+      <Button Classes="tabButton" Content="Telemetry Chart" Command="{Binding ShowChartTabCommand}"/>
     </StackPanel>
 
     <!-- Tab Content -->
@@ -196,7 +197,7 @@
                      FontFamily="Cascadia Mono, Consolas, monospace"/>
             <Button Grid.Column="1"
                     Content="Send"
-                    Click="OnSendConsoleCommand"
+                    Command="{Binding SendConsoleCommandAction}"
                     MinHeight="34"
                     Padding="16,6"
                     Background="#1a3040"
@@ -204,7 +205,7 @@
                     Foreground="#e7edf3"/>
             <Button Grid.Column="2"
                     Content="Clear"
-                    Click="OnClearConsole"
+                    Command="{Binding ClearConsoleCommand}"
                     MinHeight="34"
                     Padding="12,6"
                     Background="#26313d"
@@ -226,73 +227,15 @@
                        Foreground="#92a3b5"/>
           </StackPanel>
 
-          <!-- Chart area (data series list for now, actual graph rendering deferred to chart library) -->
-          <Border Grid.Row="1"
-                  Background="#0a1218"
-                  BorderBrush="#1e2e3c"
-                  BorderThickness="1"
-                  CornerRadius="4"
-                  Padding="12">
-            <ScrollViewer>
-              <ItemsControl ItemsSource="{Binding ChartSnapshot.Series}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="analyze:TelemetryDataSeries">
-                    <Border Background="#111b24"
-                            BorderBrush="#243240"
-                            BorderThickness="1"
-                            CornerRadius="4"
-                            Padding="10"
-                            Margin="0,4">
-                      <Grid ColumnDefinitions="200,80,80,*" ColumnSpacing="12">
-                        <StackPanel>
-                          <TextBlock Text="{Binding Name}"
-                                     Foreground="#7eb8e0"
-                                     FontWeight="SemiBold"/>
-                          <TextBlock Text="{Binding Units}"
-                                     Foreground="#6b7d8e"
-                                     FontSize="11"/>
-                        </StackPanel>
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding DataPoints.Count, StringFormat='{}{0} pts'}"
-                                   Foreground="#c9d5df"
-                                   VerticalAlignment="Center"/>
-                        <TextBlock Grid.Column="2"
-                                   Foreground="#34d37b"
-                                   VerticalAlignment="Center">
-                          <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0:F1} - {1:F1}">
-                              <Binding Path="DataPoints.Count"/>
-                              <Binding Path="DataPoints.Count"/>
-                            </MultiBinding>
-                          </TextBlock.Text>
-                        </TextBlock>
-                        <StackPanel Grid.Column="3"
-                                    Orientation="Horizontal"
-                                    Spacing="4"
-                                    VerticalAlignment="Center"
-                                    HorizontalAlignment="Right">
-                          <!-- Sparkline placeholder - actual rendering requires canvas -->
-                          <Border Background="#1a3040"
-                                  Width="200" Height="30"
-                                  CornerRadius="2">
-                            <TextBlock Text="[sparkline]"
-                                       Foreground="#3b5060"
-                                       FontSize="10"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"/>
-                          </Border>
-                        </StackPanel>
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
-          </Border>
+          <controls:TelemetryChartPlaceholder Grid.Row="1"
+                                              Snapshot="{Binding ChartSnapshot}"
+                                              ChartTitle="Telemetry Data Chart"
+                                              ChartXLabel="Time (s)"
+                                              ChartYLabel="Value"/>
 
           <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
             <Button Content="Clear All"
-                    Click="OnClearChart"
+                    Command="{Binding ClearChartCommand}"
                     MinHeight="34"
                     Padding="12,6"
                     Background="#26313d"

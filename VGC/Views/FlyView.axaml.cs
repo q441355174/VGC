@@ -5,6 +5,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using VGC.Maps;
 using VGC.ViewModels;
 using VGC.Views.Controls;
 
@@ -17,6 +18,18 @@ public partial class FlyView : UserControl
         InitializeComponent();
         this.FindControl<MainStatusToolbarIndicator>("MainStatusIndicator")?.IndicatorClicked += (sender, _) => OpenIndicatorDrawer(IndicatorDrawerKind.MainStatus, sender as Control);
         this.FindControl<FlightModeToolbarIndicator>("FlightModeIndicator")?.IndicatorClicked += (sender, _) => OpenIndicatorDrawer(IndicatorDrawerKind.FlightMode, sender as Control);
+        if (this.FindControl<FlightMapControl>("FlyMapControl") is { } map)
+        {
+            map.ViewportChanged += OnFlyMapViewportChanged;
+        }
+    }
+
+    private void OnFlyMapViewportChanged(object? sender, MapViewportChangedEventArgs e)
+    {
+        if (DataContext is FlyViewModel viewModel)
+        {
+            viewModel.MarkMapManuallyMoved(new MapViewport(new MapCoordinate(e.Center.Latitude, e.Center.Longitude, e.Center.Altitude), e.ZoomLevel));
+        }
     }
 
     private void OnMapAreaSizeChanged(object? sender, SizeChangedEventArgs e)

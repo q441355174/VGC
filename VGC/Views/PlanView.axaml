@@ -1,6 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:VGC.ViewModels"
+             xmlns:maps="using:VGC.Maps"
+             xmlns:controls="using:VGC.Views.Controls"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              x:Class="VGC.Views.PlanView"
@@ -100,61 +102,15 @@
     </Border>
 
     <Grid Grid.Row="1">
-      <Border Background="#000000"
-              PointerPressed="OnPlanMapPointerPressed">
-        <Grid>
-          <Grid RowDefinitions="*,*,*">
-            <Border Grid.Row="0" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
-            <Border Grid.Row="1" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
-          </Grid>
-          <Grid ColumnDefinitions="*,*,*">
-            <Border Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
-            <Border Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
-          </Grid>
-
-          <StackPanel x:Name="PlanMapCenterLayer"
-                      Orientation="Horizontal"
-                      HorizontalAlignment="Left"
-                      VerticalAlignment="Top"
-                      Spacing="18">
-            <Border Width="44"
-                    Height="44"
-                    CornerRadius="22"
-                    Background="#48d6ff">
-              <TextBlock Text="H"
-                         Foreground="#000000"
-                         FontWeight="Bold"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"/>
-            </Border>
-            <ItemsControl ItemsSource="{Binding MissionMapMarkers}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Orientation="Horizontal"/>
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:PlanMissionMapMarker">
-                  <Border Width="34"
-                          Height="34"
-                          CornerRadius="17"
-                          Background="#f9d838"
-                          BorderBrush="#48d6ff"
-                          BorderThickness="2"
-                          Margin="0,0,8,0"
-                          ToolTip.Tip="{Binding Summary}">
-                    <TextBlock Text="{Binding MarkerText}"
-                               Foreground="#121820"
-                               FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"/>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Grid>
-      </Border>
+      <controls:FlightMapControl x:Name="PlanMapControl"
+                                 Center="{Binding PlanMapCenter}"
+                                 ZoomLevel="{Binding PlanMapZoomLevel}"
+                                 FollowVehicle="False"
+                                 WaypointsSource="{Binding PlanMapWaypoints}"
+                                 MissionPathSource="{Binding PlanMapMissionPath}"
+                                 PolygonsSource="{Binding PlanMapPolygons}"
+                                 CirclesSource="{Binding PlanMapCircles}"
+                                 RallyPointsSource="{Binding PlanMapRallyPoints}"/>
 
       <Border x:Name="PlanToolStrip"
               Background="#CC222222"

@@ -85,6 +85,8 @@ var tests = new (string Name, Action Test)[]
     ("Feed MAVLink inspector from protocol", FeedMavlinkInspectorFromProtocol),
     ("Analyze view hosts MAVLink inspector", AnalyzeViewHostsMavlinkInspector),
     ("Analyze view filters MAVLink inspector rows", AnalyzeViewFiltersMavlinkInspectorRows),
+    ("Analyze view switches second-level tabs", AnalyzeViewSwitchesSecondLevelTabs),
+    ("Analyze view exposes tab and action commands", AnalyzeViewExposesTabAndActionCommands),
     ("Apply vehicle status messages", ApplyVehicleStatusMessages),
     ("Track heartbeat flight mode state", TrackHeartbeatFlightModeState),
     ("Create SET_MODE frame", CreateSetModeFrame),
@@ -118,6 +120,7 @@ var tests = new (string Name, Action Test)[]
     ("Plan view reflects active mission data", PlanViewReflectsActiveMissionData),
     ("Plan view edits waypoint mission items", PlanViewEditsWaypointMissionItems),
     ("Plan view switches plan sections", PlanViewSwitchesPlanSections),
+    ("Plan view navigation keeps section and map tool independent", PlanViewNavigationKeepsSectionAndMapToolIndependent),
     ("Plan view edits geofence and rally sections", PlanViewEditsGeoFenceAndRallySections),
     ("Plan view adds waypoint from map click", PlanViewAddsWaypointFromMapClick),
     ("Plan view moves selected waypoint from map click", PlanViewMovesSelectedWaypointFromMapClick),
@@ -163,6 +166,9 @@ var tests = new (string Name, Action Test)[]
     ("Analyze view exposes replay playback controls", AnalyzeViewExposesReplayPlaybackControls),
     ("Analyze view exposes replay timeline projection", AnalyzeViewExposesReplayTimelineProjection),
     ("Analyze view exposes replay workflow state", AnalyzeViewExposesReplayWorkflowState),
+    ("Manage telemetry chart runtime", ManageTelemetryChartRuntime),
+    ("Analyze view exposes telemetry chart snapshot", AnalyzeViewExposesTelemetryChartSnapshot),
+    ("Analyze view feeds telemetry chart from MAVLink", AnalyzeViewFeedsTelemetryChartFromMavlink),
     ("Analyze view summarizes durable replay diagnostics", AnalyzeViewSummarizesDurableReplayDiagnostics),
     ("Select ULog and DataFlash parser boundaries", SelectULogAndDataFlashParserBoundaries),
     ("Project parser diagnostics into flight log summary", ProjectParserDiagnosticsIntoFlightLogSummary),
@@ -180,6 +186,7 @@ var tests = new (string Name, Action Test)[]
     ("Project replay workflow detail", ProjectReplayWorkflowDetail),
     ("Catalog analyze runtime evidence", CatalogAnalyzeRuntimeEvidence),
     ("Audit analyze runtime parity gaps", AuditAnalyzeRuntimeParityGaps),
+    ("Map AnalyzeView QGC QML parity without runtime overclaim", MapAnalyzeViewQgcQmlParityWithoutRuntimeOverclaim),
     ("Parse external GPS NMEA fix", ParseExternalGpsNmeaFix),
     ("Select positioning source by fix quality", SelectPositioningSourceByFixQuality),
     ("Run RTK correction session", RunRtkCorrectionSession),
@@ -187,6 +194,7 @@ var tests = new (string Name, Action Test)[]
     ("Send FollowMe target command", SendFollowMeTargetCommand),
     ("Catalog positioning runtime evidence", CatalogPositioningRuntimeEvidence),
     ("Audit positioning runtime parity gaps", AuditPositioningRuntimeParityGaps),
+    ("Catalog Gate 10 QGC QML remaining modules", CatalogGate10QgcQmlRemainingModules),
     ("Scan joystick devices", ScanJoystickDevices),
     ("Calibrate joystick axes", CalibrateJoystickAxes),
     ("Project joystick manual control", ProjectJoystickManualControl),
@@ -200,9 +208,15 @@ var tests = new (string Name, Action Test)[]
     ("Auto-connect shell TCP endpoint from environment", AutoConnectShellTcpEndpointFromEnvironment),
     ("Auto-connect shell TCP endpoint from startup intent", AutoConnectShellTcpEndpointFromStartupIntent),
     ("Catalog UI parity workflows", CatalogUiParityWorkflows),
+    ("Catalog QGC QML module inventory", CatalogQgcQmlModuleInventory),
+    ("Catalog QGC public component migration", CatalogQgcPublicComponentMigration),
+    ("Audit QGC QML parity blockers", AuditQgcQmlParityBlockers),
+    ("Prevent QGC QML migration overclaim", PreventQgcQmlMigrationOverclaim),
     ("Build desktop android usability matrix", BuildDesktopAndroidUsabilityMatrix),
     ("Audit UI parity residual gaps", AuditUiParityResidualGaps),
     ("Catalog SITL hardware validation scenarios", CatalogSitlHardwareValidationScenarios),
+    ("Build guarded SITL command transcript plan", BuildGuardedSitlCommandTranscriptPlan),
+    ("Gate SITL command authorization", GateSitlCommandAuthorization),
     ("Record SITL environment blockers", RecordSitlEnvironmentBlockers),
     ("Audit validation closure claims", AuditValidationClosureClaims),
     ("Catalog SITL hardware evidence", CatalogSitlHardwareEvidence),
@@ -225,11 +239,19 @@ var tests = new (string Name, Action Test)[]
     ("Catalog QGC replacement phase evidence", CatalogQgcReplacementPhaseEvidence),
     ("Audit QGC replacement acceptance blockers", AuditQgcReplacementAcceptanceBlockers),
     ("Plan QGC replacement evidence pack", PlanQgcReplacementEvidencePack),
+    ("Audit QGC replacement final state", AuditQgcReplacementFinalState),
+    ("Catalog screenshot parity evidence", CatalogScreenshotParityEvidence),
+    ("Catalog QML parity sub evidence", CatalogQmlParitySubEvidence),
+    ("Catalog QGC source port inventory", CatalogQgcSourcePortInventory),
+    ("Audit QGC source port progress", AuditQgcSourcePortProgress),
+    ("Prevent QGC source port overclaim", PreventQgcSourcePortOverclaim),
+    ("Match QGC source inventory with QML catalog", MatchQgcSourceInventoryWithQmlCatalog),
     ("Catalog vehicle sub-manager parity", CatalogVehicleSubManagerParity),
     ("Catalog MAVLink dialect generation closure", CatalogMavlinkDialectGenerationClosure),
     ("Catalog MAVLink runtime adoption closure", CatalogMavlinkRuntimeAdoptionClosure),
     ("Catalog firmware setup production parity", CatalogFirmwareSetupProductionParity),
     ("Catalog desktop UI runtime evidence", CatalogDesktopUiRuntimeEvidence),
+    ("Catalog Gate 11 runtime evidence without parity overclaim", CatalogGate11RuntimeEvidenceWithoutParityOverclaim),
     ("Catalog Android native integration closure", CatalogAndroidNativeIntegrationClosure),
     ("Catalog map production runtime closure", CatalogMapProductionRuntimeClosure),
     ("Catalog video payload production pipeline", CatalogVideoPayloadProductionPipeline),
@@ -240,6 +262,7 @@ var tests = new (string Name, Action Test)[]
     ("Track gimbal runtime commands", TrackGimbalRuntimeCommands),
     ("Select video backend decision", SelectVideoBackendDecision),
     ("Model video decode pipeline", ModelVideoDecodePipeline),
+    ("Decode synthetic video frames", DecodeSyntheticVideoFrames),
     ("Model UVC device runtime", ModelUvcDeviceRuntime),
     ("Project video display layout", ProjectVideoDisplayLayout),
     ("Plan payload media output", PlanPayloadMediaOutput),
@@ -258,6 +281,11 @@ var tests = new (string Name, Action Test)[]
     ("Fly view exposes map host binding state", FlyViewExposesMapHostBindingState),
     ("Fly view projects home and trajectory state", FlyViewProjectsHomeAndTrajectoryState),
     ("Skip vehicle map overlay without coordinate", SkipVehicleMapOverlayWithoutCoordinate),
+    ("Catalog FlyView QML runtime parity", CatalogFlyViewQmlRuntimeParity),
+    ("Catalog FlightMap QML runtime parity", CatalogFlightMapQmlRuntimeParity),
+    ("Keep QGC UI parity blocked after FlyView and FlightMap migration", KeepQgcUiParityBlockedAfterFlyViewAndFlightMapMapping),
+    ("Catalog PlanView QML runtime parity", CatalogPlanViewQmlRuntimeParity),
+    ("Keep QGC UI parity blocked after PlanView migration", KeepQgcUiParityBlockedAfterPlanViewMapping),
     ("Overview view reflects vehicle status", OverviewViewReflectsVehicleStatus),
     ("Round-trip edited plan document", RoundTripEditedPlanDocument),
     ("Round-trip geofence plan document", RoundTripGeoFencePlanDocument),
@@ -278,6 +306,7 @@ var tests = new (string Name, Action Test)[]
     ("Map provider catalog exposes production candidates", MapProviderCatalogExposesProductionCandidates),
     ("Local map runtime implements provider adapter boundary", LocalMapRuntimeImplementsProviderAdapterBoundary),
     ("Map provider host selects local fallback", MapProviderHostSelectsLocalFallback),
+    ("Map provider host exposes active raster tiles", MapProviderHostExposesActiveRasterTiles),
     ("Fly view exposes provider host state", FlyViewExposesProviderHostState),
     ("Bridge vehicle overlays to provider commands", BridgeVehicleOverlaysToProviderCommands),
     ("Bridge plan overlays to provider commands", BridgePlanOverlaysToProviderCommands),
@@ -286,6 +315,7 @@ var tests = new (string Name, Action Test)[]
     ("Track map interaction selection runtime", TrackMapInteractionSelectionRuntime),
     ("Project map provider attribution policy", ProjectMapProviderAttributionPolicy),
     ("Estimate offline map region tiles", EstimateOfflineMapRegionTiles),
+    ("Plan offline map provider policy", PlanOfflineMapProviderPolicy),
     ("Run offline map download queue", RunOfflineMapDownloadQueue),
     ("Evict map tile cache entries", EvictMapTileCacheEntries),
     ("Model Android map lifecycle risks", ModelAndroidMapLifecycleRisks),
@@ -351,11 +381,13 @@ var tests = new (string Name, Action Test)[]
     ("Fetch raster tile through adapter", FetchRasterTileThroughAdapter),
     ("Store and reload map tile cache entry", StoreAndReloadMapTileCacheEntry),
     ("Create Tianditu raster adapter with key injection", CreateTiandituRasterAdapter),
+    ("Fetch Tianditu raster tile through adapter", FetchTiandituRasterTileThroughAdapter),
     ("Validate CRC extra registry coverage", ValidateCrcExtraRegistryCoverage),
     ("Apply vehicle attitude telemetry", ApplyVehicleAttitudeTelemetry),
     ("Serialize QGC compatible plan with coordinate field", SerializeQgcCompatiblePlanWithCoordinate),
     ("Evaluate preflight checklist with telemetry", EvaluatePreflightChecklistWithTelemetry),
     ("Detect communication lost on heartbeat timeout", DetectCommunicationLostOnHeartbeatTimeout),
+    ("Ignore non vehicle heartbeats", IgnoreNonVehicleHeartbeats),
     ("Track vehicle link manager bytes and errors", TrackVehicleLinkManagerBytesAndErrors),
     ("Enqueue and acknowledge vehicle command", EnqueueAndAcknowledgeVehicleCommand),
     ("Retry expired vehicle command", RetryExpiredVehicleCommand),
@@ -383,6 +415,9 @@ var tests = new (string Name, Action Test)[]
     ("Audit MAVLink full protocol coverage blockers", AuditMavlinkFullProtocolCoverageBlockers),
     ("Select MAVLink generator decision", SelectMavlinkGeneratorDecision),
     ("Expose MAVLink seed message definitions", ExposeMavlinkSeedMessageDefinitions),
+    ("Load MAVLink ArduPilotMega seed fixture", LoadMavlinkArduPilotMegaSeedFixture),
+    ("Load MAVLink dialect manifest", LoadMavlinkDialectManifest),
+    ("Audit MAVLink dialect ingestion plan", AuditMavlinkDialectIngestionPlan),
     ("Align MAVLink seed definitions with CRC registry", AlignMavlinkSeedDefinitionsWithCrcRegistry),
     ("Audit generated MAVLink CRC registry", AuditGeneratedMavlinkCrcRegistry),
     ("Keep legacy MAVLink CRC entries available", KeepLegacyMavlinkCrcEntriesAvailable),
@@ -417,6 +452,11 @@ var tests = new (string Name, Action Test)[]
     ("Load firmware metadata packages", LoadFirmwareMetadataPackages),
     ("Project firmware command UI metadata", ProjectFirmwareCommandUiMetadata),
     ("Project autopilot setup components", ProjectAutoPilotSetupComponents),
+    ("Setup view switches component navigation", SetupViewSwitchesComponentNavigation),
+    ("Shell tool drawer switches setup parameters analyze", ShellToolDrawerSwitchesSetupParametersAnalyze),
+    ("Plan view exposes deep workflow states", PlanViewExposesDeepWorkflowStates),
+    ("Analyze view remains partial chart implementation", AnalyzeViewRemainsPartialChartImplementation),
+    ("Setup view exposes partial deep component coverage", SetupViewExposesPartialDeepComponentCoverage),
     ("Create calibration command boundaries", CreateCalibrationCommandBoundaries),
     ("Project radio calibration and manual control", ProjectRadioCalibrationAndManualControl),
     ("Project power battery setup metadata", ProjectPowerBatterySetupMetadata),
@@ -427,6 +467,7 @@ var tests = new (string Name, Action Test)[]
     ("Catalog firmware setup parity flows", CatalogFirmwareSetupParityFlows),
     ("Project firmware setup runtime flow", ProjectFirmwareSetupRuntimeFlow),
     ("Audit firmware setup parity blockers", AuditFirmwareSetupParityBlockers),
+    ("Catalog Gate 9 setup parameter settings QML parity", CatalogGate9SetupParameterSettingsQmlParity),
     ("Track complex item dirty serialization", TrackComplexItemDirtySerialization),
     ("Plan survey grid camera spacing", PlanSurveyGridCameraSpacing),
     ("Plan corridor scan expansion", PlanCorridorScanExpansion),
@@ -1547,6 +1588,43 @@ static void AnalyzeViewFiltersMavlinkInspectorRows()
     Require(analyze.Summary.Contains("filtered"), "Expected filtered summary.");
 }
 
+static void AnalyzeViewSwitchesSecondLevelTabs()
+{
+    var analyze = new AnalyzeViewModel(new MavlinkProtocol());
+
+    Require(analyze.ActivePage == AnalyzePage.Inspector, "Expected default analyze page to be inspector.");
+    Require(analyze.IsInspectorTab, "Expected inspector tab true by default.");
+    analyze.SelectAnalyzePage(AnalyzePage.Console);
+    Require(analyze.ActivePage == AnalyzePage.Console, "Expected console page after enum switch.");
+    Require(analyze.IsConsoleTab && !analyze.IsInspectorTab && !analyze.IsChartTab, "Expected console tab exclusivity.");
+    analyze.SelectAnalyzeTab("chart");
+    Require(analyze.ActivePage == AnalyzePage.Chart, "Expected chart page after legacy string shim.");
+    Require(analyze.IsChartTab && !analyze.IsInspectorTab && !analyze.IsConsoleTab, "Expected chart tab exclusivity.");
+    Require(analyze.SelectedAnalyzeTab == "chart", "Expected selected tab shim to track active page.");
+}
+
+static void AnalyzeViewExposesTabAndActionCommands()
+{
+    var analyze = new AnalyzeViewModel(new MavlinkProtocol());
+
+    analyze.ShowConsoleTabCommand.Execute().Subscribe();
+    Require(analyze.ActivePage == AnalyzePage.Console, "Expected command-driven switch to console tab.");
+    analyze.ShowChartTabCommand.Execute().Subscribe();
+    Require(analyze.ActivePage == AnalyzePage.Chart, "Expected command-driven switch to chart tab.");
+    analyze.ShowInspectorTabCommand.Execute().Subscribe();
+    Require(analyze.ActivePage == AnalyzePage.Inspector, "Expected command-driven switch to inspector tab.");
+
+    analyze.ConsoleInput = "status";
+    analyze.SendConsoleCommandAction.Execute().Subscribe();
+    Require(analyze.ConsoleLines.Count == 1, "Expected console command to append line.");
+    analyze.ClearConsoleCommand.Execute().Subscribe();
+    Require(analyze.ConsoleLines.Count == 0, "Expected clear console command to clear lines.");
+
+    analyze.AddChartDataPoint("Altitude", 1, 10);
+    analyze.ClearChartCommand.Execute().Subscribe();
+    Require(analyze.ChartSnapshot.Series.Count > 0, "Expected chart clear command to re-seed default series.");
+}
+
 static void ApplyVehicleStatusMessages()
 {
     var vehicle = new Vehicle(id: 1, componentId: 1, autopilot: MavAutopilot.Px4, vehicleType: MavType.Quadrotor);
@@ -2209,6 +2287,30 @@ static void PlanViewSwitchesPlanSections()
     Require(planViewModel.ActiveSection == PlanSection.Mission, "Expected Mission section.");
 }
 
+static void PlanViewNavigationKeepsSectionAndMapToolIndependent()
+{
+    var logger = new VGC.Core.Logging.AppLogger();
+    var protocol = new MavlinkProtocol();
+    var vehicles = new MultiVehicleManager(protocol, logger);
+    var planViewModel = new PlanViewModel(vehicles);
+
+    planViewModel.SelectFencePolygonMapToolCommand.Execute().Subscribe();
+    Require(planViewModel.ActiveMapClickTool == PlanMapClickTool.FencePolygon, "Expected fence polygon tool.");
+    Require(planViewModel.ActiveSection == PlanSection.Mission, "Tool selection must not change section.");
+
+    planViewModel.ShowRallySectionCommand.Execute().Subscribe();
+    Require(planViewModel.ActiveSection == PlanSection.Rally, "Expected rally section.");
+    Require(planViewModel.ActiveMapClickTool == PlanMapClickTool.FencePolygon, "Section navigation must not change tool.");
+
+    planViewModel.SelectWaypointMapToolCommand.Execute().Subscribe();
+    Require(planViewModel.ActiveMapClickTool == PlanMapClickTool.Waypoint, "Expected waypoint tool.");
+    Require(planViewModel.ActiveSection == PlanSection.Rally, "Tool selection must preserve current section.");
+
+    planViewModel.ShowGeoFenceSectionCommand.Execute().Subscribe();
+    Require(planViewModel.ActiveSection == PlanSection.GeoFence, "Expected geofence section.");
+    Require(planViewModel.ActiveMapClickTool == PlanMapClickTool.Waypoint, "Section navigation must preserve current tool.");
+}
+
 static void PlanViewEditsGeoFenceAndRallySections()
 {
     var logger = new VGC.Core.Logging.AppLogger();
@@ -2762,6 +2864,29 @@ static void InitializeDefaultCommLinkInShell()
     Require(shell.CommLinks.Count == 1, "Expected default Comm Link.");
     Require(shell.SelectedCommLink?.Type == LinkType.Udp, "Expected default UDP Comm Link.");
     Require(shell.SelectedCommLink?.LocalPort == 14550, "Expected QGC-compatible UDP default port.");
+}
+
+static void OpenConnectDrawerUsesSettingsWorkspace()
+{
+    var store = new FakeSettingsStore();
+    var logger = new AppLogger();
+    var linkManager = new LinkManager(logger, new AppSettingsLinkConfigurationStore(store));
+    var protocol = new MavlinkProtocol();
+    protocol.Attach(linkManager);
+    var heartbeat = new GcsHeartbeatService(linkManager, new MavlinkFrameWriter(), logger);
+    var shell = new ShellViewModel(
+        new AppLifecycleService(store, logger),
+        new AppCloseCoordinator(),
+        logger,
+        linkManager,
+        protocol,
+        heartbeat,
+        new MultiVehicleManager(protocol, logger),
+        linkConfigurationStore: new AppSettingsLinkConfigurationStore(store));
+
+    shell.ShowConnectDrawerCommand.Execute().Subscribe();
+    Require(shell.IsToolDrawerActive, "Expected connect drawer command to open tool drawer.");
+    Require(shell.ToolDrawerTitle == "Comm Link Settings", "Expected connect flow to expose comm-link semantics.");
 }
 
 static void ConnectSelectedUdpCommLinkFromShell()
@@ -3332,6 +3457,60 @@ static void AnalyzeViewExposesReplayWorkflowState()
     Require(analyze.ReplayWorkflowState.SelectedDetailText.Contains("Ready"), "Expected inspector detail text.");
 }
 
+static void ManageTelemetryChartRuntime()
+{
+    var chart = new TelemetryChartRuntime();
+
+    chart.AddSeries("ALT", "m");
+    chart.AddDataPoint("ALT", 1, 10);
+    chart.AddDataPoint("ALT", 2, 12);
+
+    var snapshot = chart.Snapshot;
+    Require(snapshot.Series.Count == 1, "Expected one telemetry series.");
+    Require(snapshot.Series[0].DataPoints.Count == 2, "Expected telemetry samples.");
+    Require(snapshot.StatusText == "1 series, 2 data points", "Expected telemetry chart status.");
+
+    snapshot = chart.Clear();
+    Require(snapshot.Series.Count == 0, "Expected cleared telemetry series.");
+    Require(snapshot.StatusText == "0 series, 0 data points", "Expected cleared telemetry chart status.");
+}
+
+static void AnalyzeViewExposesTelemetryChartSnapshot()
+{
+    var protocol = new MavlinkProtocol();
+    var analyze = new AnalyzeViewModel(protocol);
+
+    analyze.AddChartSeries("ALT", "m");
+    analyze.AddChartDataPoint("ALT", 1, 10);
+
+    Require(analyze.ChartSnapshot.Series.Count == 6, "Expected Analyze chart series.");
+    Require(analyze.ChartSnapshot.Series.Single(static series => series.Name == "ALT").DataPoints.Count == 1, "Expected Analyze chart data point.");
+    Require(analyze.ChartSnapshot.StatusText == "6 series, 1 data points", "Expected Analyze chart status.");
+
+    analyze.ClearChart();
+    Require(analyze.ChartSnapshot.Series.Count == 5, "Expected Analyze chart defaults after clear.");
+    Require(analyze.ChartSnapshot.Series.All(static series => series.DataPoints.Count == 0), "Expected Analyze chart clear.");
+}
+
+static void AnalyzeViewFeedsTelemetryChartFromMavlink()
+{
+    var logger = new VGC.Core.Logging.AppLogger();
+    var linkManager = new LinkManager(logger);
+    var protocol = new MavlinkProtocol();
+    var analyze = new AnalyzeViewModel(protocol);
+    protocol.Attach(linkManager);
+
+    var link = linkManager.CreateConnectedMockLinkAsync().GetAwaiter().GetResult();
+    link.EmitIncoming(MavlinkTestFrames.Attitude(roll: 0.1f, pitch: 0.2f, yaw: 0.3f));
+    link.EmitIncoming(MavlinkTestFrames.GlobalPositionInt(relativeAltitudeMeters: 12.3));
+
+    var snapshot = analyze.ChartSnapshot;
+    Require(snapshot.Series.Single(static series => series.Name == "Roll").DataPoints.Count == 1, "Expected roll chart sample.");
+    Require(snapshot.Series.Single(static series => series.Name == "Pitch").DataPoints.Count == 1, "Expected pitch chart sample.");
+    Require(snapshot.Series.Single(static series => series.Name == "Heading").DataPoints.Count == 1, "Expected heading chart sample.");
+    Require(snapshot.Series.Single(static series => series.Name == "Altitude").DataPoints.Single().Value == 12.3, "Expected altitude chart sample.");
+}
+
 static void AnalyzeViewSummarizesDurableReplayDiagnostics()
 {
     var protocol = new MavlinkProtocol();
@@ -3698,6 +3877,24 @@ static void AuditAnalyzeRuntimeParityGaps()
     Require(audit.Summary.Contains("real/SITL"), "Expected real/SITL gap summary.");
 }
 
+static void MapAnalyzeViewQgcQmlParityWithoutRuntimeOverclaim()
+{
+    var catalog = new QgcQmlParityCatalog().Build();
+    var analyze = catalog.Single(static item => item.Module == "AnalyzeView");
+    var logManager = catalog.Single(static item => item.Module == "LogManager");
+    var audit = new QgcQmlParityAudit().Audit(catalog);
+
+    Require(analyze.Status == QgcQmlParityStatus.Migrated, "Expected AnalyzeView to be migrated, not complete.");
+    Require(analyze.RequiredEvidence == QgcQmlEvidenceLevel.Runtime, "Expected AnalyzeView runtime evidence requirement.");
+    Require(analyze.Blocker.Contains("real log", StringComparison.OrdinalIgnoreCase), "Expected AnalyzeView real log evidence gap.");
+    Require(analyze.Blocker.Contains("SITL", StringComparison.Ordinal), "Expected AnalyzeView SITL evidence gap.");
+    Require(logManager.Status == QgcQmlParityStatus.Migrated, "Expected LogManager shared runtime migration.");
+    Require(logManager.Blocker.Contains("PX4", StringComparison.Ordinal), "Expected PX4 log evidence gap.");
+    Require(logManager.Blocker.Contains("ArduPilot", StringComparison.Ordinal), "Expected ArduPilot log evidence gap.");
+    Require(!audit.CanClaimQmlUiParity, "Analyze mapping must not claim full QML UI parity.");
+    Require(!audit.CanClaimQgcReplacement, "Analyze mapping must not claim QGC replacement.");
+}
+
 static void ParseExternalGpsNmeaFix()
 {
     var runtime = new ExternalGpsRuntime();
@@ -3821,6 +4018,20 @@ static void AuditPositioningRuntimeParityGaps()
     Require(audit.CompleteItems == 5, "Expected five complete positioning evidence items.");
     Require(audit.DeferredItems == 2, "Expected two positioning field evidence gaps.");
     Require(audit.Summary.Contains("platform/field", StringComparison.Ordinal), "Expected platform/field gap summary.");
+}
+
+static void CatalogGate10QgcQmlRemainingModules()
+{
+    var catalog = new QgcQmlParityCatalog().Build();
+    var audit = new QgcQmlParityAudit().Audit(catalog);
+
+    Require(catalog.Single(static item => item.Module == "Vehicle").Status == QgcQmlParityStatus.Migrated, "Expected Vehicle migrated.");
+    Require(catalog.Single(static item => item.Module == "GPS").Status == QgcQmlParityStatus.Migrated, "Expected GPS migrated.");
+    Require(catalog.Single(static item => item.Module == "FirstRunPromptDialogs").Status == QgcQmlParityStatus.Migrated, "Expected first-run prompts migrated.");
+    Require(catalog.Single(static item => item.Module == "MainWindow").Status == QgcQmlParityStatus.Migrated, "Expected MainWindow migrated.");
+    Require(catalog.Single(static item => item.Module == "Viewer3D").Status == QgcQmlParityStatus.Deferred, "Expected Viewer3D deferred.");
+    Require(!audit.CanClaimQmlUiParity, "Expected Gate 10 not to claim full QML parity.");
+    Require(!audit.CanClaimQgcReplacement, "Expected Gate 10 not to claim QGC replacement.");
 }
 
 static void ScanJoystickDevices()
@@ -4031,6 +4242,36 @@ static void OpenShellToolDrawerNavigationActions()
     Require(settings.Groups.Count >= 5, "Expected settings groups to load from tool drawer navigation.");
 }
 
+static void ShellToolDrawerSwitchesSetupParametersAnalyze()
+{
+    var store = new FakeSettingsStore();
+    var logger = new AppLogger();
+    var linkManager = new LinkManager(logger, new AppSettingsLinkConfigurationStore(store));
+    var protocol = new MavlinkProtocol();
+    protocol.Attach(linkManager);
+    var heartbeat = new GcsHeartbeatService(linkManager, new MavlinkFrameWriter(), logger);
+    var shell = new ShellViewModel(
+        new AppLifecycleService(store, logger),
+        new AppCloseCoordinator(),
+        logger,
+        linkManager,
+        protocol,
+        heartbeat,
+        new MultiVehicleManager(protocol, logger),
+        linkConfigurationStore: new AppSettingsLinkConfigurationStore(store));
+
+    shell.ShowSetupCommand.Execute().Subscribe();
+    Require(shell.IsToolDrawerActive, "Expected setup tool drawer active.");
+    Require(shell.ToolDrawerTitle == "Vehicle Configuration", "Expected setup drawer title.");
+
+    shell.ShowParametersCommand.Execute().Subscribe();
+    Require(shell.IsToolDrawerActive, "Expected parameter tool drawer active.");
+    Require(shell.ToolDrawerTitle == "Vehicle Configuration", "Expected parameters to stay under setup drawer title.");
+
+    shell.ShowAnalyzeCommand.Execute().Subscribe();
+    Require(shell.ToolDrawerTitle == "Analyze Tools", "Expected analyze drawer title.");
+}
+
 static void AutoConnectShellTcpEndpointFromEnvironment()
 {
     var previousPrimary = Environment.GetEnvironmentVariable(ShellViewModel.AutoConnectTcpEnvironmentVariable);
@@ -4173,6 +4414,56 @@ static void CatalogUiParityWorkflows()
     Require(evidence.Any(static item => item.Id == "UIPARITY-286" && !item.Complete), "Expected visual/device residual gap.");
 }
 
+static void CatalogQgcQmlModuleInventory()
+{
+    var inventory = new QgcQmlParityCatalog().Build();
+
+    Require(inventory.Count == 16, "Expected sixteen QGC QML source modules.");
+    Require(inventory.Sum(static item => item.FileCount) == 442, "Expected 442 QGC src QML files.");
+    Require(inventory.Any(static item => item.Module == "QmlControls" && item.FileCount == 98 && item.Status == QgcQmlParityStatus.Migrated), "Expected QmlControls public component migration.");
+    Require(inventory.Any(static item => item.Module == "AutoPilotPlugins" && item.FileCount == 84 && item.Status == QgcQmlParityStatus.Blocked), "Expected AutoPilotPlugins blocker.");
+    Require(inventory.Any(static item => item.Module == "FlyView" && item.FileCount == 59), "Expected FlyView QML inventory.");
+    Require(inventory.Any(static item => item.Module == "PlanView" && item.FileCount == 43), "Expected PlanView QML inventory.");
+}
+
+static void CatalogQgcPublicComponentMigration()
+{
+    var inventory = new QgcQmlParityCatalog().Build();
+    var audit = new QgcQmlParityAudit().Audit(inventory);
+
+    Require(inventory.Count == 16, "Expected QGC QML module inventory.");
+    Require(inventory.Sum(static item => item.FileCount) == 442, "Expected full QGC QML file count.");
+    Require(inventory.Any(static item => item.Module == "QmlControls" && item.Status == QgcQmlParityStatus.Migrated), "Expected QmlControls migrated.");
+    Require(inventory.Any(static item => item.Module == "FactSystem" && item.Status == QgcQmlParityStatus.Migrated), "Expected FactSystem migrated.");
+    Require(inventory.Any(static item => item.Module == "Toolbar" && item.Status == QgcQmlParityStatus.Migrated), "Expected Toolbar migrated.");
+    Require(inventory.Any(static item => item.Module == "FlyView" && item.Status == QgcQmlParityStatus.Blocked), "Expected runtime UI modules to remain blocked.");
+    Require(!audit.CanClaimQmlUiParity, "Expected public component migration not to claim full QML parity.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("screenshot", StringComparison.OrdinalIgnoreCase) || blocker.Contains("behavior", StringComparison.OrdinalIgnoreCase) || blocker.Contains("runtime", StringComparison.OrdinalIgnoreCase)), "Expected visual or behavior evidence blocker.");
+}
+
+static void AuditQgcQmlParityBlockers()
+{
+    var inventory = new QgcQmlParityCatalog().Build();
+    var audit = new QgcQmlParityAudit().Audit(inventory);
+
+    Require(audit.TotalQmlFiles == 442, "Expected audit to cover 442 QGC QML files.");
+    Require(audit.MappedModules == 0, "Expected public component modules to move past mapped status.");
+    Require(audit.BlockedModules > audit.CompleteModules, "Expected blocked modules to exceed complete modules.");
+    Require(!audit.CanClaimQmlUiParity, "Expected QGC QML UI parity claim to remain blocked.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("FlyView", StringComparison.Ordinal)), "Expected FlyView blocker.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("PlanView", StringComparison.Ordinal)), "Expected PlanView blocker.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("AutoPilotPlugins", StringComparison.Ordinal)), "Expected AutoPilotPlugins blocker.");
+}
+
+static void PreventQgcQmlMigrationOverclaim()
+{
+    var audit = new QgcQmlParityAudit().Audit(new QgcQmlParityCatalog().Build());
+
+    Require(!audit.CanClaimQmlUiParity, "Expected no QGC QML 1:1 claim from inventory-only evidence.");
+    Require(!audit.CanClaimQgcReplacement, "Expected no QGC replacement claim from inventory-only evidence.");
+    Require(audit.Summary.Contains("migration evidence", StringComparison.Ordinal), "Expected migration evidence gap summary.");
+}
+
 static void BuildDesktopAndroidUsabilityMatrix()
 {
     var matrix = new UiUsabilityMatrix().Build();
@@ -4204,6 +4495,35 @@ static void CatalogSitlHardwareValidationScenarios()
     Require(scenarios.Any(static scenario => scenario.Area == ValidationScenarioArea.Mission), "Expected mission validation scenario.");
     Require(scenarios.Any(static scenario => scenario.Area == ValidationScenarioArea.FlightLog), "Expected flight log validation scenario.");
     Require(scenarios.Any(static scenario => scenario.RequiredEvidence == ValidationEvidenceLevel.RealHardware), "Expected real hardware validation scenario.");
+}
+
+static void BuildGuardedSitlCommandTranscriptPlan()
+{
+    var entries = new GuardedSitlCommandTranscriptPlan().BuildDryRunPlan();
+    var audit = new GuardedSitlCommandTranscriptAudit();
+
+    Require(entries.Count == 5, "Expected guarded SITL command actions.");
+    Require(entries.Any(static entry => entry.Action == GuardedSitlCommandAction.ArmDisarm && entry.Disposition == GuardedSitlCommandDisposition.Blocked), "Expected arm/disarm blocked by default.");
+    Require(entries.Where(static entry => entry.SendsVehicleCommand).All(static entry => entry.Disposition == GuardedSitlCommandDisposition.Blocked), "Expected vehicle-mutating commands blocked by default.");
+    Require(audit.SendsNoVehicleCommands(entries), "Expected dry-run plan to send no vehicle commands.");
+}
+
+static void GateSitlCommandAuthorization()
+{
+    var gate = new SitlCommandAuthorizationGate();
+    var blocked = new SitlCommandAuthorizationPolicy(false, "passive-observation", []);
+    var authorized = new SitlCommandAuthorizationPolicy(true, "authorized-sitl", [GuardedSitlCommandAction.ParameterList]);
+
+    Require(!gate.CanExecute(blocked, GuardedSitlCommandAction.ParameterWrite), "Expected blocked parameter write without authorization.");
+    Require(gate.CanExecute(authorized, GuardedSitlCommandAction.ParameterList), "Expected authorized parameter list action.");
+    Require(!gate.CanExecute(authorized, GuardedSitlCommandAction.ModeChange), "Expected unauthorized mode change to remain blocked.");
+    Require(gate.Explain(blocked, GuardedSitlCommandAction.ArmDisarm).Contains("Blocked", StringComparison.Ordinal), "Expected blocked explanation text.");
+
+    var outputPath = Path.Combine(Path.GetTempPath(), "vgc-sitl-auth.md");
+    var writtenPath = new SitlCommandAuthorizationArtifactWriter().Write(outputPath, blocked, GuardedSitlCommandAction.ArmDisarm);
+    Require(File.Exists(writtenPath), "Expected SITL authorization artifact to be written.");
+    Require(File.ReadAllText(writtenPath).Contains("CanExecute: False", StringComparison.Ordinal), "Expected blocked authorization artifact content.");
+    File.Delete(writtenPath);
 }
 
 static void RecordSitlEnvironmentBlockers()
@@ -4481,9 +4801,10 @@ static void CatalogQgcReplacementPhaseEvidence()
     Require(phases.First() == QgcReplacementPhase.UiWorkflowHardening, "Expected phase 314 first.");
     Require(phases.Last() == QgcReplacementPhase.FinalReplacementAcceptance, "Expected phase 322 last.");
     Require(evidence.Any(static item => item.Id == "QGCREPL-314-UI-SHARED" && item.Status == QgcReplacementEvidenceStatus.Complete), "Expected shared UI workflow evidence.");
+    Require(evidence.Any(static item => item.Id == "QGCREPL-314-QML-INVENTORY" && item.RequiredEvidence == QgcReplacementEvidenceLevel.Static && item.Status == QgcReplacementEvidenceStatus.Complete), "Expected QGC QML inventory evidence.");
     Require(evidence.Any(static item => item.Id == "QGCREPL-315-MAP-RUNTIME" && item.RequiredEvidence == QgcReplacementEvidenceLevel.Unit), "Expected map runtime evidence.");
-    Require(evidence.Any(static item => item.Id == "QGCREPL-316-STREAM" && item.Status == QgcReplacementEvidenceStatus.Blocked), "Expected real payload stream blocker.");
-    Require(evidence.Any(static item => item.Id == "QGCREPL-320-PX4" && item.RequiredEvidence == QgcReplacementEvidenceLevel.Sitl), "Expected PX4 SITL evidence requirement.");
+    Require(evidence.Any(static item => item.Id == "QGCREPL-316-STREAM" && item.Status == QgcReplacementEvidenceStatus.Complete), "Expected payload stream boundary evidence complete.");
+    Require(evidence.Any(static item => item.Id == "QGCREPL-320-PX4" && item.RequiredEvidence == QgcReplacementEvidenceLevel.Sitl && item.Status == QgcReplacementEvidenceStatus.Complete), "Expected PX4 SITL evidence complete.");
     Require(evidence.Any(static item => item.Id == "QGCREPL-321-ANDROID-SIGNED" && item.RequiredArtifacts.Any(static artifact => artifact.Contains("signed", StringComparison.OrdinalIgnoreCase))), "Expected Android signed artifact requirement.");
 }
 
@@ -4498,7 +4819,7 @@ static void AuditQgcReplacementAcceptanceBlockers()
     Require(audit.BlockedItems > audit.DeferredItems, "Expected explicit blockers rather than silent deferrals.");
     Require(!audit.CanClaimQgcReplacement, "Expected QGC replacement claim to remain blocked.");
     Require(!audit.CanClaimReleaseCandidate, "Expected release-candidate claim to remain blocked.");
-    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("Android", StringComparison.Ordinal)), "Expected Android blocker.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("real vehicle", StringComparison.OrdinalIgnoreCase)), "Expected real vehicle blocker.");
     Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("SITL", StringComparison.Ordinal)), "Expected SITL blocker.");
     Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("Release evidence pack", StringComparison.Ordinal)), "Expected release evidence pack blocker.");
 }
@@ -4519,6 +4840,123 @@ static void PlanQgcReplacementEvidencePack()
         && entry.RequiredExternalArtifacts.Any(static artifact => artifact.Contains("PX4", StringComparison.Ordinal))), "Expected PX4 external artifact requirement.");
     Require(pack.Any(static entry => entry.Phase == QgcReplacementPhase.FinalReplacementAcceptance
         && entry.RequiredExternalArtifacts.Any(static artifact => artifact.Contains("final audit", StringComparison.OrdinalIgnoreCase))), "Expected final acceptance audit artifact requirement.");
+}
+
+static void AuditQgcReplacementFinalState()
+{
+    var qmlInventory = new QgcQmlParityCatalog().Build();
+    var runtimeEvidence = new Gate11RuntimeEvidenceCatalog().Build();
+    var replacementEvidence = new QgcReplacementPhaseEvidenceCatalog().Build();
+    var replacement = new QgcReplacementAcceptanceAudit().Audit(replacementEvidence);
+    var result = new QgcReplacementFinalAudit().Audit(qmlInventory, runtimeEvidence, replacement);
+
+    Require(result.TotalQgcQmlFiles == 442, "Expected final audit to cover all QGC QML files.");
+    Require(result.MappedModules > 0, "Expected mapped QGC QML modules.");
+    Require(result.MigratedModules > 0, "Expected migrated QGC QML modules.");
+    Require(result.DeferredModules == 1, "Expected Viewer3D to remain deferred.");
+    Require(result.CompleteModules == 0, "Expected no complete QML parity modules.");
+    Require(result.RuntimeEvidenceBlockers > 0, "Expected runtime evidence blockers.");
+    Require(result.ReplacementEvidenceBlockedItems > 0, "Expected replacement evidence blockers.");
+    Require(result.ReplacementEvidenceDeferredItems > 0, "Expected deferred replacement evidence.");
+    Require(!result.CanClaimQmlUiParity, "Expected no QML UI parity claim.");
+    Require(!result.CanClaimQgcReplacement, "Expected no QGC replacement claim.");
+    Require(!result.CanClaimReleaseCandidate, "Expected no release candidate claim.");
+    Require(!result.AndroidWorkloadBlocked, "Expected Android workload blocker to be cleared by emulator build evidence.");
+    Require(result.OpenBlockers.Any(static blocker => blocker.Contains("ArduPilot SITL transcript", StringComparison.OrdinalIgnoreCase)), "Expected ArduPilot SITL blocker text.");
+}
+
+static void CatalogScreenshotParityEvidence()
+{
+    var targets = new ScreenshotParityEvidenceCatalog().BuildFlyPlanTargets();
+    var manifest = new ScreenshotParityManifestBuilder().Build(targets);
+
+    Require(targets.Count == 4, "Expected Fly/Plan screenshot parity targets.");
+    Require(targets.Any(static target => target.Id == "SHOT-FLY-TOOLBAR" && target.Status == ScreenshotParityStatus.Pending), "Expected Fly toolbar screenshot target.");
+    Require(targets.Any(static target => target.Id == "SHOT-PLAN-EDITOR" && target.ArtifactPath.Contains("plan-editor", StringComparison.Ordinal)), "Expected Plan editor artifact path.");
+    Require(manifest.CapturedCount == 0, "Expected no captured screenshots in scaffold.");
+    Require(manifest.PendingCount == targets.Count, "Expected all screenshot targets pending.");
+    Require(manifest.MissingArtifacts.Count == targets.Count, "Expected missing screenshot artifact manifest.");
+    Require(manifest.CaptureInstructions.Count == targets.Count, "Expected capture instructions for every screenshot target.");
+
+    var exporter = new ScreenshotParityEvidenceExporter();
+    var markdown = exporter.ExportFlyPlanManifestMarkdown();
+    Require(markdown.Contains("SHOT-FLY-TOOLBAR", StringComparison.Ordinal), "Expected exported Fly screenshot target.");
+    Require(markdown.Contains("Capture instructions", StringComparison.Ordinal), "Expected capture instructions section.");
+
+    var outputPath = Path.Combine(Path.GetTempPath(), "vgc-screenshot-manifest.md");
+    var writtenPath = exporter.WriteFlyPlanManifest(outputPath);
+    Require(File.Exists(writtenPath), "Expected screenshot manifest file to be written.");
+    Require(File.ReadAllText(writtenPath).Contains("SHOT-PLAN-EDITOR", StringComparison.Ordinal), "Expected written screenshot manifest content.");
+    File.Delete(writtenPath);
+}
+
+static void CatalogQmlParitySubEvidence()
+{
+    var catalog = new QgcQmlParitySubEvidenceCatalog();
+    var items = catalog.BuildFlyPlanFlightMap();
+    var audit = new QgcQmlParitySubEvidenceAudit();
+
+    Require(items.Count == 12, "Expected Fly/Plan/FlightMap sub evidence items.");
+    Require(items.Any(static item => item.Module == "FlyView" && item.Category == "android" && item.Status == QgcParitySubEvidenceStatus.Complete), "Expected FlyView Android sub evidence complete.");
+    Require(items.Any(static item => item.Module == "PlanView" && item.Category == "command" && item.Status == QgcParitySubEvidenceStatus.Blocked), "Expected PlanView command sub evidence blocked.");
+    Require(items.Any(static item => item.Module == "FlightMap" && item.Category == "command" && item.Status == QgcParitySubEvidenceStatus.Skipped), "Expected FlightMap command sub evidence skipped.");
+    Require(catalog.BuildBlockerText("FlyView").Contains("screenshot", StringComparison.Ordinal), "Expected FlyView blocker text from sub evidence.");
+    Require(audit.OpenBlockers(items).Any(static blocker => blocker.Contains("PlanView/command", StringComparison.Ordinal)), "Expected PlanView command blocker export.");
+
+    var outputPath = Path.Combine(Path.GetTempPath(), "vgc-qml-sub-evidence.md");
+    var writtenPath = new QgcQmlParitySubEvidenceFileWriter().WriteMarkdown(outputPath);
+    Require(File.Exists(writtenPath), "Expected QML sub evidence file to be written.");
+    Require(File.ReadAllText(writtenPath).Contains("FlightMap | sitl", StringComparison.Ordinal), "Expected QML sub evidence markdown content.");
+    File.Delete(writtenPath);
+}
+
+static void CatalogQgcSourcePortInventory()
+{
+    var items = new QgcSourcePortInventoryCatalog().Build();
+
+    Require(items.Count >= 20, "Expected detailed QGC source inventory areas.");
+    Require(items.Sum(static item => item.QmlFiles) == 442, "Expected QGC QML source count to match source tree.");
+    Require(items.Sum(static item => item.CppFiles) == 497, "Expected QGC C++ source count to match source tree.");
+    Require(items.Sum(static item => item.HeaderFiles) == 571, "Expected QGC header source count to match source tree.");
+    Require(items.Any(static item => item.QgcArea == "Vehicle" && item.QgcSource == "src/Vehicle" && item.VgcTarget.Contains("VGC/Vehicles", StringComparison.Ordinal)), "Expected Vehicle area mapped from QGC vehicle runtime.");
+    Require(items.Any(static item => item.QgcArea == "MissionManager" && item.QgcSource == "src/MissionManager" && item.VgcTarget.Contains("VGC/Mission", StringComparison.Ordinal)), "Expected MissionManager mapped from QGC mission runtime.");
+    Require(items.Any(static item => item.QgcArea == "Comms" && item.QgcSource == "src/Comms"), "Expected QGC Comms source path.");
+    Require(items.Any(static item => item.QgcArea == "MAVLink" && item.QgcSource.Contains("MAVLinkProtocol", StringComparison.Ordinal)), "Expected QGC MAVLink protocol source path.");
+    Require(items.Any(static item => item.QgcArea == "Viewer3D" && item.QgcSource == "src/Viewer3D" && item.Status == QgcSourceAreaStatus.Deferred), "Expected Viewer3D deferred.");
+    Require(items.Any(static item => item.QgcArea == "Android" && item.QgcSource.Contains("android/src", StringComparison.Ordinal) && item.Status == QgcSourceAreaStatus.Blocked), "Expected Android blocker.");
+}
+
+static void AuditQgcSourcePortProgress()
+{
+    var result = new QgcSourcePortAudit().Audit(new QgcSourcePortInventoryCatalog().Build());
+
+    Require(result.TotalQmlFiles == 442, "Expected source audit QML count.");
+    Require(result.TotalCppFiles == 497, "Expected source audit C++ count.");
+    Require(result.TotalHeaderFiles == 571, "Expected source audit header count.");
+    Require(result.PartialAreas > 0, "Expected partial source areas.");
+    Require(result.BlockedAreas > 0, "Expected blocked source areas.");
+    Require(result.DeferredAreas > 0, "Expected deferred source areas.");
+    Require(result.WeightedCoveragePercent is > 0 and < 100, "Expected weighted coverage below full parity.");
+    Require(result.OpenBlockers.Any(static blocker => blocker.Contains("SITL", StringComparison.OrdinalIgnoreCase)), "Expected SITL blocker in source audit.");
+}
+
+static void PreventQgcSourcePortOverclaim()
+{
+    var result = new QgcSourcePortAudit().Audit(new QgcSourcePortInventoryCatalog().Build());
+
+    Require(!result.CanClaimQgcSourceParity, "Expected no QGC source parity claim.");
+    Require(!result.CanClaimQgcReplacement, "Expected no QGC replacement claim from source inventory.");
+    Require(!result.CanClaimReleaseCandidate, "Expected no release candidate claim from source inventory.");
+}
+
+static void MatchQgcSourceInventoryWithQmlCatalog()
+{
+    var source = new QgcSourcePortAudit().Audit(new QgcSourcePortInventoryCatalog().Build());
+    var qml = new QgcQmlParityAudit().Audit(new QgcQmlParityCatalog().Build());
+
+    Require(source.TotalQmlFiles == qml.TotalQmlFiles, "Expected source inventory QML total to match QML parity catalog.");
+    Require(!qml.CanClaimQmlUiParity, "Expected QML parity still blocked.");
+    Require(!source.CanClaimQgcReplacement, "Expected source inventory not to override QML blockers.");
 }
 
 static void CatalogVehicleSubManagerParity()
@@ -4575,8 +5013,23 @@ static void CatalogDesktopUiRuntimeEvidence()
 
     Require(requirements.Count == 6, "Expected Phase 327 desktop UI workflows.");
     Require(audit.SharedModelCompleteItems == requirements.Count, "Expected all shared UI models complete.");
-    Require(audit.RuntimeEvidenceCompleteItems == 0, "Expected runtime screenshots still missing.");
+    Require(audit.RuntimeEvidenceCompleteItems == requirements.Count, "Expected desktop runtime evidence recorded for all desktop workflows.");
     Require(audit.MissingRuntimeEvidence.Any(static item => item.Contains("FlyView", StringComparison.Ordinal)), "Expected FlyView screenshot requirement.");
+}
+
+static void CatalogGate11RuntimeEvidenceWithoutParityOverclaim()
+{
+    var evidence = new Gate11RuntimeEvidenceCatalog().Build();
+    var qmlAudit = new QgcQmlParityAudit().Audit(new QgcQmlParityCatalog().Build());
+
+    Require(evidence.Any(static item => item.Id == "GATE11-DESKTOP-BUILD" && item.Complete && item.Status == Gate11RuntimeEvidenceStatus.Complete), "Expected desktop build evidence complete.");
+    Require(evidence.Any(static item => item.Id == "GATE11-ANDROID-WORKLOAD" && item.Complete && item.Status == Gate11RuntimeEvidenceStatus.Complete), "Expected Android workload evidence complete.");
+    Require(evidence.Any(static item => item.Id == "GATE11-DESKTOP-RUNTIME" && item.Complete && item.Status == Gate11RuntimeEvidenceStatus.Complete), "Expected desktop runtime evidence complete.");
+    Require(evidence.Any(static item => item.Id == "GATE11-DESKTOP-SCREENSHOT" && !item.Complete), "Expected screenshot parity to remain incomplete.");
+    Require(evidence.Any(static item => item.Id == "GATE11-SITL" && item.Complete), "Expected SITL TCP heartbeat evidence complete.");
+    Require(evidence.Any(static item => item.Id == "GATE11-ANDROID-DEVICE" && item.Complete), "Expected Android emulator launch evidence complete.");
+    Require(!qmlAudit.CanClaimQmlUiParity, "Expected runtime evidence gate not to claim QML parity.");
+    Require(!qmlAudit.CanClaimQgcReplacement, "Expected runtime evidence gate not to claim QGC replacement.");
 }
 
 static void CatalogAndroidNativeIntegrationClosure()
@@ -4607,7 +5060,7 @@ static void CatalogVideoPayloadProductionPipeline()
     var missing = new VideoPayloadProductionAudit().MissingEvidence(items);
 
     Require(items.Count == 6, "Expected Phase 330 video payload production items.");
-    Require(items.Any(static item => item.Id == "VID330-RTSP-UDP" && item.Status == VideoPayloadProductionStatus.Blocked), "Expected RTSP/UDP blocker.");
+    Require(items.Any(static item => item.Id == "VID330-RTSP-UDP" && item.Status == VideoPayloadProductionStatus.SharedModelOnly), "Expected RTSP/UDP synthetic decode evidence without real stream claim.");
     Require(items.Any(static item => item.Id == "VID330-GIMBAL" && item.CoveredCapabilities.Contains("ROI command")), "Expected gimbal ROI coverage.");
     Require(missing.Any(static evidence => evidence.Contains("real RTSP", StringComparison.Ordinal)), "Expected real RTSP evidence gap.");
 }
@@ -4818,6 +5271,27 @@ static void ModelVideoDecodePipeline()
     var failed = runtime.Fail("decoder missing");
     Require(failed.Error == "decoder missing", "Expected decode failure error.");
     Require(runtime.Close().State == VideoDecodePipelineState.Closed, "Expected closed pipeline.");
+}
+
+static void DecodeSyntheticVideoFrames()
+{
+    var decoder = new SyntheticVideoDecoder(frameCount: 4, width: 8, height: 6);
+    var pipeline = new VideoDecodePipeline(decoder);
+    var received = 0;
+    pipeline.FrameReceived += (_, frame) =>
+    {
+        received++;
+        Require(frame.Width == 8 && frame.Height == 6, "Expected synthetic frame dimensions.");
+        Require(frame.PixelFormat == "RGB24", "Expected synthetic RGB frame format.");
+    };
+
+    pipeline.StartAsync("udp://127.0.0.1:5600", VideoProtocol.Udp).GetAwaiter().GetResult();
+    var snapshot = pipeline.Snapshot;
+
+    Require(snapshot.State == VideoDecoderState.Decoding, "Expected synthetic decoder pipeline to decode.");
+    Require(snapshot.Statistics.FrameCount == 4, "Expected synthetic frame count in pipeline statistics.");
+    Require(received == 4, "Expected synthetic frames to be emitted.");
+    pipeline.StopAsync().GetAwaiter().GetResult();
 }
 
 static void ModelUvcDeviceRuntime()
@@ -5234,6 +5708,59 @@ static void SkipVehicleMapOverlayWithoutCoordinate()
     Require(frame.ActiveVehicle is null, "Expected no vehicle overlay before coordinate is available.");
     Require(frame.Home is null, "Expected no home overlay by default.");
     Require(frame.Trajectory is null, "Expected no trajectory overlay by default.");
+}
+
+static void CatalogFlyViewQmlRuntimeParity()
+{
+    var fly = new QgcQmlParityCatalog().Build().Single(static item => item.Module == "FlyView");
+
+    Require(fly.Status == QgcQmlParityStatus.Migrated, "Expected FlyView QML workflow migration evidence.");
+    Require(fly.RequiredEvidence == QgcQmlEvidenceLevel.Runtime, "Expected FlyView runtime evidence gate.");
+    Require(fly.Area == UiWorkflowArea.Fly, "Expected FlyView area.");
+    Require(fly.VgcTarget.Contains("VGC/Views/FlyView.axaml", StringComparison.Ordinal), "Expected FlyView AXAML target.");
+    Require(fly.Blocker.Contains("SITL", StringComparison.Ordinal) && fly.Blocker.Contains("device", StringComparison.OrdinalIgnoreCase), "Expected FlyView runtime blockers.");
+}
+
+static void CatalogFlightMapQmlRuntimeParity()
+{
+    var map = new QgcQmlParityCatalog().Build().Single(static item => item.Module == "FlightMap");
+
+    Require(map.Status == QgcQmlParityStatus.Migrated, "Expected FlightMap migrated implementation evidence.");
+    Require(map.RequiredEvidence == QgcQmlEvidenceLevel.Runtime, "Expected FlightMap runtime evidence gate.");
+    Require(map.Area == UiWorkflowArea.Fly, "Expected FlightMap fly area.");
+    Require(map.VgcTarget.Contains("VGC.UI/Controls/MapControls.cs", StringComparison.Ordinal), "Expected FlightMap map control target.");
+    Require(map.Blocker.Contains("offline tile", StringComparison.OrdinalIgnoreCase) && map.Blocker.Contains("SITL", StringComparison.Ordinal), "Expected remaining FlightMap runtime blockers.");
+}
+
+static void KeepQgcUiParityBlockedAfterFlyViewAndFlightMapMapping()
+{
+    var audit = new QgcQmlParityAudit().Audit(new QgcQmlParityCatalog().Build());
+
+    Require(!audit.CanClaimQmlUiParity, "Expected QGC UI parity to remain blocked after FlyView/FlightMap mapping.");
+    Require(!audit.CanClaimQgcReplacement, "Expected QGC replacement to remain blocked after FlyView/FlightMap mapping.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("FlyView", StringComparison.Ordinal)), "Expected FlyView runtime blocker.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("FlightMap", StringComparison.Ordinal)), "Expected FlightMap runtime blocker.");
+}
+
+static void CatalogPlanViewQmlRuntimeParity()
+{
+    var plan = new QgcQmlParityCatalog().Build().Single(static item => item.Module == "PlanView");
+
+    Require(plan.FileCount == 43, "Expected PlanView QML file count.");
+    Require(plan.Status == QgcQmlParityStatus.Migrated, "Expected PlanView migrated implementation evidence.");
+    Require(plan.RequiredEvidence == QgcQmlEvidenceLevel.Runtime, "Expected PlanView runtime evidence gate.");
+    Require(plan.Area == UiWorkflowArea.Plan, "Expected PlanView area.");
+    Require(plan.VgcTarget.Contains("VGC/Views/PlanView.axaml", StringComparison.Ordinal), "Expected PlanView AXAML target.");
+    Require(plan.Blocker.Contains("screenshot", StringComparison.OrdinalIgnoreCase) && plan.Blocker.Contains("SITL", StringComparison.Ordinal), "Expected PlanView remaining runtime blockers.");
+}
+
+static void KeepQgcUiParityBlockedAfterPlanViewMapping()
+{
+    var audit = new QgcQmlParityAudit().Audit(new QgcQmlParityCatalog().Build());
+
+    Require(!audit.CanClaimQmlUiParity, "Expected QGC UI parity to remain blocked after PlanView mapping.");
+    Require(!audit.CanClaimQgcReplacement, "Expected QGC replacement to remain blocked after PlanView mapping.");
+    Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("PlanView", StringComparison.Ordinal)), "Expected PlanView runtime blocker.");
 }
 
 static void OverviewViewReflectsVehicleStatus()
@@ -5847,6 +6374,20 @@ static void MapProviderHostSelectsLocalFallback()
     Require(frame.ProviderName == "Local Vector", "Expected local display frame through host.");
 }
 
+static void MapProviderHostExposesActiveRasterTiles()
+{
+    var host = new MapProviderHost(
+        [
+            new LocalMapRuntime(),
+            new RasterTileMapAdapter(MapProviderCatalog.MapsuiOsmRaster)
+        ],
+        MapProviderKind.MapsuiRaster);
+
+    Require(host.ActiveProvider.Kind == MapProviderKind.MapsuiRaster, "Expected desktop raster provider active.");
+    Require(host.ActiveRasterTiles is not null, "Expected active raster tile source.");
+    Require(host.ActiveBaseLayer?.Id == "osm-standard", "Expected OSM base layer active.");
+}
+
 static void FlyViewExposesProviderHostState()
 {
     var logger = new VGC.Core.Logging.AppLogger();
@@ -6019,6 +6560,21 @@ static void EstimateOfflineMapRegionTiles()
     Require(estimate.EstimatedBytes == estimate.TileCount * 24 * 1024, "Expected deterministic size estimate.");
     Require(!estimate.IsDownloadAllowed, "Expected default OSM bulk offline download to be blocked.");
     Require(estimate.ProviderKind == MapProviderKind.MapsuiRaster, "Expected provider kind to round-trip.");
+}
+
+static void PlanOfflineMapProviderPolicy()
+{
+    var planner = new OfflineMapRegionPlanner();
+    var osmPolicy = planner.BuildPolicy(MapProviderCatalog.MapsuiOsmRaster);
+    var tiandituPolicy = planner.BuildPolicy(MapProviderCatalog.TiandituRaster);
+    var region = planner.PlanRegion(" Test field ", new MapCoordinate(47.397, 8.545), 12, 14);
+
+    Require(osmPolicy.CanPlanOfflineRegion, "Expected OSM offline region planning to be available.");
+    Require(!osmPolicy.CanBulkDownload, "Expected OSM bulk tile download to remain disabled by policy.");
+    Require(!tiandituPolicy.CanPlanOfflineRegion, "Expected Tianditu offline planning to remain disabled.");
+    Require(region.IsValid, "Expected planned offline region to be valid.");
+    Require(region.Name == "Test field", "Expected offline region name trimming.");
+    Require(region.EstimatedSizeBytes == region.EstimatedTileCount * 32 * 1024, "Expected deterministic offline size estimate.");
 }
 
 static void RunOfflineMapDownloadQueue()
@@ -7480,6 +8036,38 @@ static void PlanViewExposesWorkflowPanelState()
     Require(rally.Count == 1, "Expected Rally point count.");
 }
 
+static void PlanViewExposesDeepWorkflowStates()
+{
+    var planViewModel = new PlanViewModel(new MultiVehicleManager(new MavlinkProtocol(), new AppLogger()));
+    planViewModel.AddWaypoint();
+    planViewModel.AddGeoFencePolygon();
+    planViewModel.AddGeoFenceCircle();
+    planViewModel.AddRallyPoint();
+
+    var nodes = planViewModel.PlanWorkflowNodes;
+    Require(nodes.Any(static node => node.Id == "complex" && node.IsComplexAuthoring), "Expected complex workflow node to exist but remain pending.");
+    Require(planViewModel.FileWorkflowState.AndroidStorageRiskText.Length > 0, "Expected Android storage risk text.");
+    Require(planViewModel.PlanTransferCommands.Count > 0, "Expected plan transfer commands.");
+}
+
+static void AnalyzeViewRemainsPartialChartImplementation()
+{
+    var analyze = new AnalyzeViewModel(new MavlinkProtocol());
+    Require(analyze.ChartSnapshot.Series.Count > 0, "Expected chart runtime scaffold.");
+    Require(analyze.ChartSnapshot.StatusText.Contains("series", StringComparison.OrdinalIgnoreCase), "Expected chart scaffold status text.");
+}
+
+static void SetupViewExposesPartialDeepComponentCoverage()
+{
+    var vehicles = new MultiVehicleManager(new MavlinkProtocol(), new AppLogger());
+    var setup = new SetupViewModel(vehicles);
+    var components = setup.Components;
+
+    Require(components.Any(static component => component.Id == "sensors"), "Expected sensors component.");
+    Require(components.Any(static component => component.Id == "flight-modes"), "Expected flight-modes component entry.");
+    Require(components.Any(static component => component.Id == "airframe" || component.Id == "motors" || component.Id == "joystick"), "Expected partial deep setup components to be exposed by current skeleton.");
+}
+
 static void PlanViewExposesFileWorkflowState()
 {
     var logger = new VGC.Core.Logging.AppLogger();
@@ -7785,6 +8373,20 @@ static void CreateTiandituRasterAdapter()
     adapter.SetViewportAsync(new MapViewport(new MapCoordinate(39.9, 116.4), 10)).GetAwaiter().GetResult();
 }
 
+static void FetchTiandituRasterTileThroughAdapter()
+{
+    var store = new FakeSettingsStore();
+    store.Current.TiandituApiKey = "test-tk";
+    var keyService = new TiandituApiKeyService(store);
+    using var httpClient = new HttpClient(new FakeHttpMessageHandler([0x89, 0x50, 0x4E, 0x47]));
+    using var adapter = new TiandituRasterAdapter(keyService, httpClient);
+
+    var bytes = adapter.FetchTileAsync("tianditu-vector", 5, 26, 12).GetAwaiter().GetResult();
+
+    Require(bytes is not null, "Expected Tianditu raster tile bytes.");
+    Require(bytes!.Length == 4, "Expected Tianditu raster tile byte length.");
+}
+
 static void ValidateCrcExtraRegistryCoverage()
 {
     Require(MavlinkCrcExtraRegistry.RegisteredCount >= 30, "Expected at least 30 CRC registered messages.");
@@ -7806,6 +8408,8 @@ static void CatalogMavlinkFullProtocolCoverageGaps()
         && item.Disposition == MavlinkFullProtocolCoverageDisposition.Partial), "Expected seed definition partial coverage.");
     Require(items.Any(static item => item.Id == "MAV-312-DIALECT-WIDE-GENERATOR"
         && item.Disposition == MavlinkFullProtocolCoverageDisposition.Blocked), "Expected dialect-wide generator blocker.");
+    Require(items.Any(static item => item.Id == "MAV-312-DIALECT-FIXTURES"
+        && item.Disposition == MavlinkFullProtocolCoverageDisposition.Partial), "Expected curated dialect fixtures to be partial.");
     Require(items.Any(static item => item.EvidenceTests.Contains("Expose MAVLink protocol evidence catalog")), "Expected protocol evidence test reference.");
 
     var testProgram = File.ReadAllText(FindRepositoryPath("VGC.Tests", "Program.cs"));
@@ -7823,7 +8427,7 @@ static void AuditMavlinkFullProtocolCoverageBlockers()
     Require(summary.TotalAreas == items.Count, "Expected audit total to match catalog.");
     Require(summary.CompleteAreas >= 3, "Expected completed MAVLink coverage areas.");
     Require(summary.PartialAreas >= 2, "Expected partial MAVLink coverage areas.");
-    Require(summary.BlockedAreas >= 2, "Expected explicit MAVLink full generator blockers.");
+    Require(summary.BlockedAreas >= 1, "Expected explicit MAVLink full generator blocker.");
     Require(summary.GeneratedSeedMessageCount == MavlinkSeedMessageDefinitions.All.Count, "Expected seed message count from generated definitions.");
     Require(summary.RegisteredCrcCount == MavlinkCrcExtraRegistry.RegisteredCount, "Expected CRC count from registry.");
     Require(summary.RequiredEvidenceAreasCovered == MavlinkProtocolEvidenceCatalog.RequiredAreas.Count, "Expected all required evidence areas covered.");
@@ -7872,6 +8476,54 @@ static void ExposeMavlinkSeedMessageDefinitions()
     var fixture = XDocument.Load(Path.Combine("VGC", "Mavlink", "Definitions", "common.seed.xml"));
     var messages = fixture.Root?.Element("messages")?.Elements("message").ToArray() ?? [];
     Require(messages.Length == MavlinkSeedMessageDefinitions.All.Count, "Expected XML seed fixture to match registry count.");
+}
+
+static void LoadMavlinkArduPilotMegaSeedFixture()
+{
+    var fixture = XDocument.Load(Path.Combine("VGC", "Mavlink", "Definitions", "ardupilotmega.seed.xml"));
+    var includes = fixture.Root?.Elements("include").Select(static element => element.Value).ToArray() ?? [];
+    var messages = fixture.Root?.Element("messages")?.Elements("message").ToArray() ?? [];
+
+    Require(includes.Contains("common.seed.xml"), "Expected ArduPilotMega seed fixture to include common seed definitions.");
+    Require(messages.Any(static message => (string?)message.Attribute("name") == "GOPRO_HEARTBEAT"), "Expected ArduPilotMega seed-specific message fixture.");
+
+    var result = MavlinkDialectXmlGenerator.Generate(fixture, ["GOPRO_HEARTBEAT"]);
+    Require(result.TryGet("GOPRO_HEARTBEAT", out var goproHeartbeat), "Expected generated ArduPilotMega seed message definition.");
+    Require(goproHeartbeat.MessageId == 11030, "Expected GOPRO_HEARTBEAT message id from ArduPilotMega seed.");
+    Require(goproHeartbeat.CrcExtra > 0, "Expected generated GOPRO_HEARTBEAT CRC extra.");
+}
+
+static void LoadMavlinkDialectManifest()
+{
+    var manifest = File.ReadAllText(Path.Combine("VGC", "Mavlink", "Definitions", "dialect-manifest.json"));
+
+    Require(manifest.Contains("\"common\"", StringComparison.Ordinal), "Expected common dialect manifest entry.");
+    Require(manifest.Contains("\"ardupilotmega\"", StringComparison.Ordinal), "Expected ardupilotmega dialect manifest entry.");
+    Require(manifest.Contains("common.seed.xml", StringComparison.Ordinal), "Expected common seed fixture reference.");
+    Require(manifest.Contains("ardupilotmega.seed.xml", StringComparison.Ordinal), "Expected ardupilotmega seed fixture reference.");
+    Require(manifest.Contains("full upstream common.xml normalization", StringComparison.Ordinal), "Expected full upstream common blocker.");
+}
+
+static void AuditMavlinkDialectIngestionPlan()
+{
+    var plan = new MavlinkDialectIngestionPlan();
+    var items = plan.Build();
+    var projections = plan.Project(items);
+    var audit = new MavlinkDialectIngestionAudit();
+    var blockers = audit.OpenBlockers(items);
+    var consistency = new MavlinkDialectIngestionConsistency();
+    var loader = new MavlinkFullUpstreamStubLoader();
+
+    Require(items.Count == 2, "Expected common and ardupilotmega ingestion items.");
+    Require(items.All(static item => item.Status == MavlinkDialectIngestionStatus.FullUpstreamMissing), "Expected full upstream dialects missing.");
+    Require(items.All(static item => !item.FullUpstreamExists), "Expected missing full upstream files.");
+    Require(projections.Count == items.Count, "Expected one projection per dialect.");
+    Require(projections.Any(static item => item.Summary.Contains("common.xml", StringComparison.Ordinal)), "Expected projected common.xml missing summary.");
+    Require(consistency.AllFullUpstreamFilesMissing(items), "Expected all upstream files missing in stub phase.");
+    Require(loader.DescribeMissingFile("common", "VGC/Mavlink/Definitions/common.xml").Contains("common", StringComparison.Ordinal), "Expected missing-file description.");
+    Require(!audit.CanClaimFullDialectCoverage(items), "Expected no full dialect coverage claim.");
+    Require(blockers.Any(static blocker => blocker.Contains("common", StringComparison.Ordinal)), "Expected common dialect blocker.");
+    Require(blockers.Any(static blocker => blocker.Contains("ardupilotmega", StringComparison.Ordinal)), "Expected ardupilotmega dialect blocker.");
 }
 
 static void AlignMavlinkSeedDefinitionsWithCrcRegistry()
@@ -8448,6 +9100,23 @@ static void DetectCommunicationLostOnHeartbeatTimeout()
 
     vehicles.CheckHeartbeatTimeouts();
     Require(!lostDetected, "Expected no loss for recent heartbeat.");
+}
+
+static void IgnoreNonVehicleHeartbeats()
+{
+    var protocol = new MavlinkProtocol();
+    var logger = new VGC.Core.Logging.AppLogger();
+    var linkManager = new LinkManager(logger);
+    protocol.Attach(linkManager);
+    var vehicles = new MultiVehicleManager(protocol, logger);
+    var link = linkManager.CreateConnectedMockLinkAsync().GetAwaiter().GetResult();
+
+    link.EmitIncoming(MavlinkTestFrames.HeartbeatV1(systemId: 8, componentId: 1, vehicleType: MavType.Gcs));
+    link.EmitIncoming(MavlinkTestFrames.HeartbeatV1(systemId: 9, componentId: 154, vehicleType: MavType.Quadrotor));
+    link.EmitIncoming(MavlinkTestFrames.HeartbeatV1(systemId: 10, componentId: 1, vehicleType: MavType.Quadrotor));
+
+    Require(vehicles.Vehicles.Count == 1, "Expected only autopilot vehicle heartbeat to create a vehicle.");
+    Require(vehicles.Vehicles[0].Id == 10, "Expected GCS/component heartbeats ignored like QGC MultiVehicleManager.");
 }
 
 static void TrackVehicleLinkManagerBytesAndErrors()
@@ -9034,6 +9703,28 @@ static void ProjectAutoPilotSetupComponents()
     Require(components.Any(static component => component.Id == "motors"), "Expected multirotor motors component.");
 }
 
+static void SetupViewSwitchesComponentNavigation()
+{
+    var vehicles = new MultiVehicleManager(new MavlinkProtocol(), new VGC.Core.Logging.AppLogger());
+    var setup = new SetupViewModel(vehicles);
+
+    Require(setup.PageKind == SetupPageKind.Summary, "Expected setup to start on summary page.");
+    Require(setup.ShowSummaryPage && !setup.ShowParametersPage, "Expected summary compatibility flags.");
+
+    setup.ShowParameters();
+    Require(setup.PageKind == SetupPageKind.Parameters, "Expected parameters page after ShowParameters.");
+    Require(setup.ShowParametersPage && !setup.ShowSummaryPage, "Expected parameters compatibility flags.");
+    Require(setup.SelectedComponent is null, "Expected no selected component on parameters page.");
+
+    var component = new VehicleSetupComponentStatus("sensors", "Sensors", "Sensors summary", true, true, VehicleSetupReadiness.Ready, "ok", []);
+    setup.SelectedComponent = component;
+    Require(setup.PageKind == SetupPageKind.Component, "Expected component page after selecting a component.");
+    Require(setup.DetailTabKind == SetupDetailTabKind.Sensors, "Expected sensors detail tab.");
+    Require(setup.SelectedDetailTab == "sensors", "Expected detail tab compatibility string.");
+    Require(!setup.ShowSummaryPage && !setup.ShowParametersPage, "Expected special-page flags cleared on component page.");
+    Require(setup.IsComponentSelected("sensors"), "Expected selected component helper to reflect component page.");
+}
+
 static void CreateCalibrationCommandBoundaries()
 {
     var compass = CalibrationCommandFactory.Create(SensorCalibrationType.Compass);
@@ -9193,6 +9884,29 @@ static void AuditFirmwareSetupParityBlockers()
     Require(!audit.CanClaimQgcFirmwareSetupParity, "Expected QGC firmware setup parity claim to remain blocked.");
     Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("AIRFRAME", StringComparison.Ordinal)), "Expected airframe blocker.");
     Require(audit.OpenBlockers.Any(static blocker => blocker.Contains("RUNTIME-EVIDENCE", StringComparison.Ordinal)), "Expected runtime evidence blocker.");
+}
+
+static void CatalogGate9SetupParameterSettingsQmlParity()
+{
+    var catalog = new QgcQmlParityCatalog().Build();
+    var setup = catalog.Single(static item => item.Module == "AutoPilotPlugins");
+    var firmware = catalog.Single(static item => item.Module == "FirmwarePlugin");
+    var settings = catalog.Single(static item => item.Module == "AppSettings");
+    var facts = catalog.Single(static item => item.Module == "FactSystem");
+    var gps = catalog.Single(static item => item.Module == "GPS");
+    var audit = new QgcQmlParityAudit().Audit(catalog);
+
+    Require(setup.Status == QgcQmlParityStatus.Mapped && setup.Area == UiWorkflowArea.Setup, "Expected AutoPilotPlugins setup mapping until SITL/device evidence exists.");
+    Require(setup.VgcTarget == "VGC/Views/SetupView.axaml", "Expected SetupView target.");
+    Require(setup.Blocker.Contains("SITL", StringComparison.Ordinal) && setup.Blocker.Contains("device", StringComparison.OrdinalIgnoreCase), "Expected setup runtime blockers.");
+    Require(firmware.Status == QgcQmlParityStatus.Migrated && firmware.VgcTarget == "VGC/Firmware", "Expected firmware plugin migration.");
+    Require(firmware.Blocker.Contains("airframe", StringComparison.OrdinalIgnoreCase) && firmware.Blocker.Contains("device", StringComparison.OrdinalIgnoreCase), "Expected firmware blockers.");
+    Require(settings.Status == QgcQmlParityStatus.Mapped && settings.Area == UiWorkflowArea.Settings, "Expected AppSettings mapping until full runtime/device evidence exists.");
+    Require(settings.VgcTarget == "VGC/Views/SettingsView.axaml", "Expected SettingsView target.");
+    Require(facts.Status == QgcQmlParityStatus.Migrated && facts.Area == UiWorkflowArea.Parameters, "Expected FactSystem to remain migrated.");
+    Require(gps.Status == QgcQmlParityStatus.Migrated, "Expected GPS migration for positioning runtime boundaries.");
+    Require(!audit.CanClaimQmlUiParity, "Expected Gate 9 not to claim full QML parity.");
+    Require(!audit.CanClaimQgcReplacement, "Expected Gate 9 not to claim QGC replacement.");
 }
 
 static void AddParameter(ParameterManager manager, string name, float value, int componentId = 1)

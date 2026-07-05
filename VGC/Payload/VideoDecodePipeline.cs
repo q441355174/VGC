@@ -88,6 +88,49 @@ public sealed class NullVideoDecoder : IVideoDecoder
     }
 }
 
+public sealed class SyntheticVideoDecoder : IVideoDecoder
+{
+    private readonly int _frameCount;
+    private readonly int _width;
+    private readonly int _height;
+    private VideoDecoderState _state = VideoDecoderState.Idle;
+
+    public SyntheticVideoDecoder(int frameCount = 3, int width = 16, int height = 16)
+    {
+        _frameCount = Math.Max(0, frameCount);
+        _width = Math.Max(1, width);
+        _height = Math.Max(1, height);
+    }
+
+    public VideoDecoderState State => _state;
+
+    public string? LastError => null;
+
+    public event EventHandler<VideoFrame>? FrameReceived;
+
+    public Task StartAsync(string uri, VideoProtocol protocol, CancellationToken cancellationToken = default)
+    {
+        _state = VideoDecoderState.Decoding;
+        for (var i = 0; i < _frameCount && !cancellationToken.IsCancellationRequested; i++)
+        {
+            FrameReceived?.Invoke(this, new VideoFrame(
+                _width,
+                _height,
+                "RGB24",
+                new byte[_width * _height * 3],
+                TimeSpan.FromMilliseconds(i * 33)));
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken = default)
+    {
+        _state = VideoDecoderState.Stopped;
+        return Task.CompletedTask;
+    }
+}
+
 public sealed class VideoDecodePipeline : IAsyncDisposable
 {
     private readonly IVideoDecoder _decoder;

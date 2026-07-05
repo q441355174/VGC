@@ -31,16 +31,27 @@ public sealed record AnalyzeDiagnosticSummary(
     string TopReplayMessage,
     string SummaryText);
 
+public enum AnalyzePage
+{
+    Inspector,
+    Console,
+    Chart
+}
+
 public sealed class AnalyzeViewModel : ViewModelBase
 {
+    private const uint VfrHudMessageId = 74;
+    private const double RadiansToDegrees = 180.0 / Math.PI;
+
     private readonly MavlinkInspector _inspector;
     private readonly ReplayPlaybackSession _replaySession;
     private readonly TelemetryChartRuntime _chartRuntime;
     private string _filterText = string.Empty;
     private string _consoleInput = string.Empty;
-    private string _selectedAnalyzeTab = "inspector";
+    private AnalyzePage _activePage = AnalyzePage.Inspector;
     private MavlinkInspectorRow? _selectedInspectorRow;
     private ReplayPacketIndexRow? _selectedReplayPacketRow;
+    private double _chartSampleIndex;
 
     public AnalyzeViewModel(MavlinkProtocol protocol)
     {
@@ -53,7 +64,12 @@ public sealed class AnalyzeViewModel : ViewModelBase
         ReplayGaps = [];
         ConsoleLines = [];
         _inspector.Attach(protocol);
-        protocol.PacketReceived += (_, _) => RefreshRows();
+        AddDefaultChartSeries();
+        protocol.PacketReceived += (_, packet) =>
+        {
+            RefreshRows();
+            AddTelemetryChartData(packet);
+        };
         PlayReplayCommand = ReactiveCommand.Create(PlayReplay);
         PauseReplayCommand = ReactiveCommand.Create(PauseReplay);
         StepReplayCommand = ReactiveCommand.Create(() => AdvanceReplayToNextPacket());
@@ -61,6 +77,12 @@ public sealed class AnalyzeViewModel : ViewModelBase
         SetReplayHalfSpeedCommand = ReactiveCommand.Create(() => SetReplaySpeed(0.5));
         SetReplayNormalSpeedCommand = ReactiveCommand.Create(() => SetReplaySpeed(1.0));
         SetReplayDoubleSpeedCommand = ReactiveCommand.Create(() => SetReplaySpeed(2.0));
+        ShowInspectorTabCommand = ReactiveCommand.Create(() => SelectAnalyzePage(AnalyzePage.Inspector));
+        ShowConsoleTabCommand = ReactiveCommand.Create(() => SelectAnalyzePage(AnalyzePage.Console));
+        ShowChartTabCommand = ReactiveCommand.Create(() => SelectAnalyzePage(AnalyzePage.Chart));
+        SendConsoleCommandAction = ReactiveCommand.Create(SendConsoleCommand);
+        ClearConsoleCommand = ReactiveCommand.Create(ClearConsole);
+        ClearChartCommand = ReactiveCommand.Create(ClearChart);
     }
 
     public string Title => "Analyze";
@@ -141,16 +163,36 @@ public sealed class AnalyzeViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> SetReplayDoubleSpeedCommand { get; }
 
+    public ReactiveCommand<Unit, Unit> ShowInspectorTabCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ShowConsoleTabCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ShowChartTabCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> SendConsoleCommandAction { get; }
+
+    public ReactiveCommand<Unit, Unit> ClearConsoleCommand { get; }
+
+    public ReactiveCommand<Unit, Unit> ClearChartCommand { get; }
+
     // Analyze tab selection
-    public string SelectedAnalyzeTab
+    public AnalyzePage ActivePage
     {
-        get => _selectedAnalyzeTab;
-        set => this.RaiseAndSetIfChanged(ref _selectedAnalyzeTab, value);
+        get => _activePage;
+        private set => this.RaiseAndSetIfChanged(ref _activePage, value);
     }
 
-    public bool IsInspectorTab => _selectedAnalyzeTab == "inspector";
-    public bool IsConsoleTab => _selectedAnalyzeTab == "console";
-    public bool IsChartTab => _selectedAnalyzeTab == "chart";
+    public string SelectedAnalyzeTab => ActivePage switch
+    {
+        AnalyzePage.Inspector => "inspector",
+        AnalyzePage.Console => "console",
+        AnalyzePage.Chart => "chart",
+        _ => "inspector"
+    };
+
+    public bool IsInspectorTab => ActivePage == AnalyzePage.Inspector;
+    public bool IsConsoleTab => ActivePage == AnalyzePage.Console;
+    public bool IsChartTab => ActivePage == AnalyzePage.Chart;
 
     // MAVLink Console
     public ObservableCollection<AnalyzeConsoleLine> ConsoleLines { get; }
@@ -199,15 +241,27 @@ public sealed class AnalyzeViewModel : ViewModelBase
     public void ClearChart()
     {
         _chartRuntime.Clear();
+        AddDefaultChartSeries();
         this.RaisePropertyChanged(nameof(ChartSnapshot));
+    }
+
+    public void SelectAnalyzePage(AnalyzePage page)
+    {
+        ActivePage = page;
+        this.RaisePropertyChanged(nameof(SelectedAnalyzeTab));
+        this.RaisePropertyChanged(nameof(IsInspectorTab));
+        this.RaisePropertyChanged(nameof(IsConsoleTab));
+        this.RaisePropertyChanged(nameof(IsChartTab));
     }
 
     public void SelectAnalyzeTab(string tab)
     {
-        SelectedAnalyzeTab = tab;
-        this.RaisePropertyChanged(nameof(IsInspectorTab));
-        this.RaisePropertyChanged(nameof(IsConsoleTab));
-        this.RaisePropertyChanged(nameof(IsChartTab));
+        SelectAnalyzePage(tab switch
+        {
+            "console" => AnalyzePage.Console,
+            "chart" => AnalyzePage.Chart,
+            _ => AnalyzePage.Inspector
+        });
     }
 
     public ReplayPlaybackSnapshot Replay => _replaySession.Snapshot;
@@ -274,6 +328,37 @@ public sealed class AnalyzeViewModel : ViewModelBase
 
         this.RaisePropertyChanged(nameof(Summary));
         RaiseAnalyzeWorkflowChanged();
+    }
+
+    private void AddDefaultChartSeries()
+    {
+        _chartRuntime.AddSeries("Roll", "deg");
+        _chartRuntime.AddSeries("Pitch", "deg");
+        _chartRuntime.AddSeries("Heading", "deg");
+        _chartRuntime.AddSeries("Altitude", "m");
+        _chartRuntime.AddSeries("Ground speed", "m/s");
+    }
+
+    private void AddTelemetryChartData(MavlinkPacket packet)
+    {
+        var timestamp = _chartSampleIndex++;
+        switch (packet.MessageId)
+        {
+            case MavlinkMessageIds.Attitude when packet.Payload.Length >= 12:
+                _chartRuntime.AddDataPoint("Roll", timestamp, BitConverter.ToSingle(packet.Payload, 0) * RadiansToDegrees);
+                _chartRuntime.AddDataPoint("Pitch", timestamp, BitConverter.ToSingle(packet.Payload, 4) * RadiansToDegrees);
+                _chartRuntime.AddDataPoint("Heading", timestamp, BitConverter.ToSingle(packet.Payload, 8) * RadiansToDegrees);
+                this.RaisePropertyChanged(nameof(ChartSnapshot));
+                break;
+            case MavlinkMessageIds.GlobalPositionInt when packet.Payload.Length >= 20:
+                _chartRuntime.AddDataPoint("Altitude", timestamp, BitConverter.ToInt32(packet.Payload, 16) / 1000.0);
+                this.RaisePropertyChanged(nameof(ChartSnapshot));
+                break;
+            case VfrHudMessageId when packet.Payload.Length >= 8:
+                _chartRuntime.AddDataPoint("Ground speed", timestamp, BitConverter.ToSingle(packet.Payload, 4));
+                this.RaisePropertyChanged(nameof(ChartSnapshot));
+                break;
+        }
     }
 
     private MavlinkInspectorFilter CreateFilter()

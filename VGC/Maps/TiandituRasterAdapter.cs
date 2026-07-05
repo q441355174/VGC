@@ -2,7 +2,7 @@ using System.Net.Http;
 
 namespace VGC.Maps;
 
-public sealed class TiandituRasterAdapter : IMapAdapter, IMapProviderAdapter, IDisposable
+public sealed class TiandituRasterAdapter : IMapAdapter, IMapProviderAdapter, IMapRasterTileSource, IDisposable
 {
     private readonly TiandituApiKeyService _apiKeyService;
     private readonly TiandituProviderAdapter _urlProvider;
@@ -43,14 +43,19 @@ public sealed class TiandituRasterAdapter : IMapAdapter, IMapProviderAdapter, ID
         return Task.FromResult(new MapProviderCameraState(_viewport.Center, _viewport.ZoomLevel));
     }
 
-    public async Task<byte[]?> FetchVectorTileAsync(int z, int x, int y, CancellationToken cancellationToken = default)
+    public Task<byte[]?> FetchVectorTileAsync(int z, int x, int y, CancellationToken cancellationToken = default)
     {
-        if (!_apiKeyService.HasKey)
-        {
-            return null;
-        }
+        return FetchTileAsync("tianditu-vector", z, x, y, cancellationToken);
+    }
 
-        var url = _urlProvider.GetTileUrl("tianditu-vector", z, x, y);
+    public Task<byte[]?> FetchLabelTileAsync(int z, int x, int y, CancellationToken cancellationToken = default)
+    {
+        return FetchTileAsync("tianditu-vector-label", z, x, y, cancellationToken);
+    }
+
+    public async Task<byte[]?> FetchTileAsync(string layerId, int z, int x, int y, CancellationToken cancellationToken = default)
+    {
+        var url = GetTileUrl(layerId, z, x, y);
         if (url is null)
         {
             return null;
@@ -69,30 +74,17 @@ public sealed class TiandituRasterAdapter : IMapAdapter, IMapProviderAdapter, ID
         }
     }
 
-    public async Task<byte[]?> FetchLabelTileAsync(int z, int x, int y, CancellationToken cancellationToken = default)
+    private string? GetTileUrl(string layerId, int z, int x, int y)
     {
         if (!_apiKeyService.HasKey)
         {
             return null;
         }
 
-        var url = _urlProvider.GetTileUrl("tianditu-vector-label", z, x, y);
-        if (url is null)
-        {
-            return null;
-        }
-
-        try
-        {
-            var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
-            return response.IsSuccessStatusCode
-                ? await response.Content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false)
-                : null;
-        }
-        catch
-        {
-            return null;
-        }
+        var layer = Descriptor.TileLayers.FirstOrDefault(layer => layer.Id == layerId);
+        return layer is null
+            ? null
+            : MapTileUrlBuilder.Build(layer, z, x, y, _ => _apiKeyService.GetKey());
     }
 
     public void Dispose()

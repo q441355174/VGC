@@ -84,10 +84,10 @@ public sealed class MavlinkFullProtocolCoverageCatalog
                 "MAV-312-DIALECT-FIXTURES",
                 "Complete MAVLink XML fixture ingestion",
                 MavlinkFullProtocolCoveragePriority.P1,
-                MavlinkFullProtocolCoverageDisposition.Blocked,
+                MavlinkFullProtocolCoverageDisposition.Partial,
                 "VGC/Mavlink/Definitions",
-                ["Expose MAVLink seed message definitions"],
-                "Only common.seed.xml is present; full upstream dialect fixture normalization and drift checks remain open."),
+                ["Expose MAVLink seed message definitions", "Load MAVLink ArduPilotMega seed fixture"],
+                "common.seed.xml and ardupilotmega.seed.xml are present as curated seed fixtures; full upstream dialect fixture normalization and drift checks remain open."),
             new(
                 "MAV-312-RUNTIME-ADOPTION",
                 "Runtime adoption of generated payload readers/writers",

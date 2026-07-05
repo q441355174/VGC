@@ -72,6 +72,7 @@ public sealed class ShellViewModel : ViewModelBase
     private readonly OverviewViewModel _overviewViewModel;
     private readonly FlyViewModel _flyViewModel;
     private readonly NavigationGuard _navigationGuard = new();
+    private bool _showingConnectWorkflow;
     private readonly ToastNotification _toastNotification = new();
     private readonly FirstRunPromptService _firstRunPromptService = new();
     private string _statusText = "Starting";
@@ -130,7 +131,7 @@ public sealed class ShellViewModel : ViewModelBase
         _multiVehicleManager.VehiclesChanged += (_, _) => RefreshToolbarStatus();
         _multiVehicleManager.VehicleUpdated += (_, _) => RefreshToolbarStatus();
         InitializeCommand = ReactiveCommand.CreateFromTask(InitializeAsync);
-        ShowConnectDrawerCommand = ReactiveCommand.CreateFromTask(OpenSettingsToolAsync);
+        ShowConnectDrawerCommand = ReactiveCommand.CreateFromTask(OpenConnectToolAsync);
         AddCommLinkCommand = ReactiveCommand.Create(AddCommLink);
         DeleteCommLinkCommand = ReactiveCommand.Create(DeleteSelectedCommLink);
         SaveCommLinksCommand = ReactiveCommand.CreateFromTask(SaveCommLinksAsync);
@@ -477,6 +478,7 @@ public sealed class ShellViewModel : ViewModelBase
     {
         ToolDrawerKind.Analyze => "Analyze Tools",
         ToolDrawerKind.Setup => "Vehicle Configuration",
+        ToolDrawerKind.Settings when _showingConnectWorkflow => "Comm Link Settings",
         ToolDrawerKind.Settings => "Application Settings",
         _ => string.Empty
     };
@@ -505,6 +507,21 @@ public sealed class ShellViewModel : ViewModelBase
         return Unit.Default;
     }
 
+    private async Task<Unit> OpenConnectToolAsync()
+    {
+        if (_settingsViewModel.Groups.Count == 0)
+        {
+            await _settingsViewModel.LoadAsync().ConfigureAwait(false);
+        }
+
+        await EnsureCommLinksLoadedAsync().ConfigureAwait(false);
+        _showingConnectWorkflow = true;
+        OpenToolDrawer(ToolDrawerKind.Settings, _settingsViewModel);
+        CloseToolSelect();
+        ShowToastMessage("Comm Link settings opened.", ToastSeverity.Info);
+        return Unit.Default;
+    }
+
     private async Task<Unit> OpenSettingsToolAsync()
     {
         if (_settingsViewModel.Groups.Count == 0)
@@ -513,6 +530,7 @@ public sealed class ShellViewModel : ViewModelBase
         }
 
         await EnsureCommLinksLoadedAsync().ConfigureAwait(false);
+        _showingConnectWorkflow = false;
         OpenToolDrawer(ToolDrawerKind.Settings, _settingsViewModel);
         CloseToolSelect();
         return Unit.Default;
@@ -536,6 +554,7 @@ public sealed class ShellViewModel : ViewModelBase
     private Unit CloseToolDrawer()
     {
         _activeToolDrawerKind = ToolDrawerKind.None;
+        _showingConnectWorkflow = false;
         CurrentToolWorkspace = null;
         RaiseToolDrawerProjection();
         return Unit.Default;

@@ -73,6 +73,11 @@ public sealed class MultiVehicleManager : ReactiveObject
 
     private void ApplyHeartbeat(MavlinkHeartbeat heartbeat, ILinkTransport? link = null)
     {
+        if (!IsVehicleHeartbeat(heartbeat))
+        {
+            return;
+        }
+
         var vehicle = _vehicles.FirstOrDefault(v => v.Id == heartbeat.SystemId);
         if (vehicle is null)
         {
@@ -156,6 +161,16 @@ public sealed class MultiVehicleManager : ReactiveObject
             vehicle.InitialConnect.MarkFailed(ex.Message);
             _logger.Error($"Vehicle {vehicle.Id} initial connect failed: {ex.Message}");
         }
+    }
+
+    private static bool IsVehicleHeartbeat(MavlinkHeartbeat heartbeat)
+    {
+        if (heartbeat.SystemId == 0 || heartbeat.ComponentId != 1)
+        {
+            return false;
+        }
+
+        return heartbeat.VehicleType is not (MavType.Gcs or MavType.OnboardController or MavType.Gimbal or MavType.Adsb);
     }
 
     private static bool TryReadHeartbeat(MavlinkPacket packet, out MavlinkHeartbeat heartbeat)

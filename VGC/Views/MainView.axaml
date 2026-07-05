@@ -78,7 +78,7 @@
                     Height="48"
                     Background="#4a2c6d"
                     BorderThickness="0"
-                    Command="{Binding ShowToolDrawerCommand}">
+                    Command="{Binding CloseToolDrawerCommand}">
               <TextBlock Text="VGC"
                          Foreground="#ffffff"
                          FontWeight="Bold"

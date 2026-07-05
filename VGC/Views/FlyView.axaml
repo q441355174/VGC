@@ -133,57 +133,15 @@
     <!-- ================================================================ -->
     <Grid Grid.Row="1" x:Name="MapAreaGrid" SizeChanged="OnMapAreaSizeChanged">
 
-      <!-- Layer 0: Map placeholder (fill) -->
+      <!-- Layer 0: Map surface (fill) -->
       <Grid x:Name="FlyMapHolder">
-      <Border Background="#000000">
-        <Grid>
-          <!-- Grid lines for map placeholder -->
-          <Grid RowDefinitions="*,*,*">
-            <Border Grid.Row="0" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
-            <Border Grid.Row="1" BorderBrush="#333333" BorderThickness="0,0,0,1"/>
-          </Grid>
-          <Grid ColumnDefinitions="*,*,*">
-            <Border Grid.Column="0" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
-            <Border Grid.Column="1" BorderBrush="#333333" BorderThickness="0,0,1,0"/>
-          </Grid>
-
-          <!-- Range rings -->
-          <Ellipse x:Name="OuterRangeRing"
-                   Stroke="#333333" StrokeThickness="1"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          <Ellipse x:Name="InnerRangeRing"
-                   Stroke="#3a3a3a" StrokeThickness="1"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-          <!-- Vehicle marker -->
-          <Border x:Name="VehicleMapMarker"
-                  Background="#17b93e" BorderBrush="#eafff3"
-                  BorderThickness="2"
-                  IsVisible="{Binding HasMapVehicle}"
-                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          <!-- Crosshair -->
-          <Border x:Name="VehicleCrosshairVertical"
-                  Background="#ffffff"
-                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                  IsVisible="{Binding HasMapVehicle}"/>
-          <Border x:Name="VehicleCrosshairHorizontal"
-                  Background="#ffffff"
-                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                  IsVisible="{Binding HasMapVehicle}"/>
-
-          <!-- Home marker -->
-          <Border x:Name="HomeMapMarker"
-                  Background="#f9d838" BorderBrush="#fff8d6"
-                  BorderThickness="2" CornerRadius="2"
-                  IsVisible="{Binding HasMapHome}"
-                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-          <!-- Trajectory -->
-          <Polyline x:Name="VehicleTrajectory"
-                    Stroke="#48d6ff" StrokeThickness="3"
-                    IsVisible="{Binding HasMapTrajectory}"/>
-        </Grid>
-      </Border>
+        <controls:FlightMapControl x:Name="FlyMapControl"
+                                   Center="{Binding FlightMapCenter}"
+                                   ZoomLevel="{Binding FlightMapZoomLevel}"
+                                   FollowVehicle="{Binding IsMapFollowingVehicle}"
+                                   VehiclesSource="{Binding FlightMapVehicles}"
+                                   MissionPathSource="{Binding FlightMapMissionPath}"
+                                   RallyPointsSource="{Binding FlightMapHomeMarkers}"/>
 
       <!-- Layer 1: ToolStrip (left-top, width=70px, vertical, square buttons) -->
       <Border x:Name="FlyToolStrip"
@@ -283,9 +241,13 @@
               HorizontalAlignment="Left"
               VerticalAlignment="Top"
               Margin="0,8,0,0">
-        <TextBlock Text="{Binding MapZoomText}"
-                   Foreground="#909090"
-                   FontSize="10"/>
+        <StackPanel Spacing="2">
+          <controls:MapScaleControl ZoomLevel="{Binding FlightMapZoomLevel}"
+                                    Latitude="{Binding FlightMapScaleLatitude}"/>
+          <TextBlock Text="{Binding MapZoomText}"
+                     Foreground="#909090"
+                     FontSize="10"/>
+        </StackPanel>
       </Border>
 
       <!-- Layer 3: Flight Instruments HUD (center, only when HasActiveVehicle) -->

@@ -2,7 +2,7 @@ using System.Net.Http;
 
 namespace VGC.Maps;
 
-public sealed class RasterTileMapAdapter : IMapAdapter, IMapProviderAdapter, IDisposable
+public sealed class RasterTileMapAdapter : IMapAdapter, IMapProviderAdapter, IMapRasterTileSource, IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly MapProviderDescriptor _descriptor;
@@ -44,16 +44,16 @@ public sealed class RasterTileMapAdapter : IMapAdapter, IMapProviderAdapter, IDi
     public async Task<byte[]?> FetchTileAsync(string layerId, int z, int x, int y, CancellationToken cancellationToken = default)
     {
         var layer = _descriptor.TileLayers.FirstOrDefault(l => l.Id == layerId);
-        if (layer?.Template is not { } template)
+        if (layer is null)
         {
             return null;
         }
 
-        var url = template
-            .Replace("{z}", z.ToString())
-            .Replace("{x}", x.ToString())
-            .Replace("{y}", y.ToString())
-            .Replace("{s}", "a");
+        var url = MapTileUrlBuilder.Build(layer, z, x, y);
+        if (url is null)
+        {
+            return null;
+        }
 
         try
         {

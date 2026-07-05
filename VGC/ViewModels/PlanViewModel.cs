@@ -5,6 +5,7 @@ using VGC.Comms;
 using VGC.Maps;
 using VGC.Mission;
 using VGC.Vehicles;
+using VGC.Views.Controls;
 
 namespace VGC.ViewModels;
 
@@ -150,6 +151,7 @@ public sealed class PlanViewModel : ViewModelBase
     private string _planImportExportStatusText = "Plan import/export ready";
     private bool _isPlanDirty;
     private PlanMapClickTool _activeMapClickTool = PlanMapClickTool.Waypoint;
+    private MapViewport? _manualMapViewport;
     private bool _isRightPanelCollapsed;
 
     public PlanViewModel(MultiVehicleManager multiVehicleManager, LinkManager? linkManager = null)
@@ -172,12 +174,7 @@ public sealed class PlanViewModel : ViewModelBase
         {
             _linkManager.LinksChanged += (_, _) => RaiseTransferAvailabilityProperties();
         }
-        AddWaypointCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveMapClickTool = PlanMapClickTool.Waypoint;
-            AddWaypoint();
-            return Unit.Default;
-        });
+        AddWaypointCommand = ReactiveCommand.Create(() => AddWithTool(PlanMapClickTool.Waypoint, AddWaypoint));
         RemoveSelectedItemCommand = ReactiveCommand.Create(() =>
         {
             RemoveSelectedItem();
@@ -193,33 +190,11 @@ public sealed class PlanViewModel : ViewModelBase
             MoveSelectedItemDown();
             return Unit.Default;
         });
-        ShowMissionSectionCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveSection = PlanSection.Mission;
-            return Unit.Default;
-        });
-        ShowGeoFenceSectionCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveSection = PlanSection.GeoFence;
-            return Unit.Default;
-        });
-        ShowRallySectionCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveSection = PlanSection.Rally;
-            return Unit.Default;
-        });
-        AddGeoFencePolygonCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveMapClickTool = PlanMapClickTool.FencePolygon;
-            AddGeoFencePolygon();
-            return Unit.Default;
-        });
-        AddGeoFenceCircleCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveMapClickTool = PlanMapClickTool.FenceCircle;
-            AddGeoFenceCircle();
-            return Unit.Default;
-        });
+        ShowMissionSectionCommand = ReactiveCommand.Create(() => ShowPlanSection(PlanSection.Mission));
+        ShowGeoFenceSectionCommand = ReactiveCommand.Create(() => ShowPlanSection(PlanSection.GeoFence));
+        ShowRallySectionCommand = ReactiveCommand.Create(() => ShowPlanSection(PlanSection.Rally));
+        AddGeoFencePolygonCommand = ReactiveCommand.Create(() => AddWithTool(PlanMapClickTool.FencePolygon, AddGeoFencePolygon));
+        AddGeoFenceCircleCommand = ReactiveCommand.Create(() => AddWithTool(PlanMapClickTool.FenceCircle, AddGeoFenceCircle));
         RemoveLastGeoFencePolygonCommand = ReactiveCommand.Create(() =>
         {
             RemoveLastGeoFencePolygon();
@@ -230,12 +205,7 @@ public sealed class PlanViewModel : ViewModelBase
             RemoveLastGeoFenceCircle();
             return Unit.Default;
         });
-        AddRallyPointCommand = ReactiveCommand.Create(() =>
-        {
-            ActiveMapClickTool = PlanMapClickTool.RallyPoint;
-            AddRallyPoint();
-            return Unit.Default;
-        });
+        AddRallyPointCommand = ReactiveCommand.Create(() => AddWithTool(PlanMapClickTool.RallyPoint, AddRallyPoint));
         RemoveLastRallyPointCommand = ReactiveCommand.Create(() =>
         {
             RemoveLastRallyPoint();
@@ -252,11 +222,11 @@ public sealed class PlanViewModel : ViewModelBase
         ClearRallyCommand = ReactiveCommand.Create(RequestRallyClear, this.WhenAnyValue(static x => x.CanRequestRallyTransfer));
         ConfirmPendingTransferCommand = ReactiveCommand.CreateFromTask(ConfirmPendingTransferAsync, this.WhenAnyValue(static x => x.HasPendingTransfer));
         CancelPendingTransferCommand = ReactiveCommand.Create(CancelPendingTransfer, this.WhenAnyValue(static x => x.HasPendingTransfer));
-        SelectWaypointMapToolCommand = ReactiveCommand.Create(() => SetActiveMapClickTool(PlanMapClickTool.Waypoint));
-        SelectFencePolygonMapToolCommand = ReactiveCommand.Create(() => SetActiveMapClickTool(PlanMapClickTool.FencePolygon));
-        SelectFenceCircleMapToolCommand = ReactiveCommand.Create(() => SetActiveMapClickTool(PlanMapClickTool.FenceCircle));
-        SelectRallyMapToolCommand = ReactiveCommand.Create(() => SetActiveMapClickTool(PlanMapClickTool.RallyPoint));
-        SelectMoveWaypointMapToolCommand = ReactiveCommand.Create(() => SetActiveMapClickTool(PlanMapClickTool.MoveSelectedWaypoint));
+        SelectWaypointMapToolCommand = ReactiveCommand.Create(() => SelectMapClickTool(PlanMapClickTool.Waypoint));
+        SelectFencePolygonMapToolCommand = ReactiveCommand.Create(() => SelectMapClickTool(PlanMapClickTool.FencePolygon));
+        SelectFenceCircleMapToolCommand = ReactiveCommand.Create(() => SelectMapClickTool(PlanMapClickTool.FenceCircle));
+        SelectRallyMapToolCommand = ReactiveCommand.Create(() => SelectMapClickTool(PlanMapClickTool.RallyPoint));
+        SelectMoveWaypointMapToolCommand = ReactiveCommand.Create(() => SelectMapClickTool(PlanMapClickTool.MoveSelectedWaypoint));
         ToggleRightPanelCommand = ReactiveCommand.Create(() =>
         {
             ToggleRightPanel();
@@ -280,7 +250,45 @@ public sealed class PlanViewModel : ViewModelBase
 
     public string MissionStats => BuildMissionStats(Document);
 
-    public string PlanMapPreviewSummary => BuildPlanMapPreviewSummary(ProjectPlanMapDisplayFrame());
+    public PlanMapDisplayFrame PlanMapDisplayFrame => ProjectPlanMapDisplayFrame();
+
+    public MapGeoPoint PlanMapCenter => new(PlanMapDisplayFrame.Viewport.Center.Latitude, PlanMapDisplayFrame.Viewport.Center.Longitude, PlanMapDisplayFrame.Viewport.Center.AltitudeMeters ?? 0);
+
+    public double PlanMapZoomLevel => PlanMapDisplayFrame.Viewport.ZoomLevel;
+
+    public double PlanMapScaleLatitude => PlanMapDisplayFrame.Viewport.Center.Latitude;
+
+    public IReadOnlyList<MissionMarker> PlanMapWaypoints => Document.Mission.Items
+        .Where(static item => item.Params.Length >= 7)
+        .Select((item, index) => new MissionMarker(item.DoJumpId, new MapGeoPoint(item.Params[4], item.Params[5], item.Params[6]), item.Command.ToString(), index == SelectedIndex))
+        .ToArray();
+
+    public IReadOnlyList<MapGeoPoint> PlanMapMissionPath => PlanMapWaypoints.Select(static marker => marker.Position).ToArray();
+
+    public IReadOnlyList<MapPolygonOverlay> PlanMapPolygons => Document.GeoFence.Polygons
+        .Where(static polygon => polygon.Polygon.Count >= 3)
+        .Select(static polygon => new MapPolygonOverlay(
+            polygon.Polygon.Select(static point => new MapGeoPoint(point.Latitude, point.Longitude, point.Altitude ?? 0)).ToArray(),
+            true,
+            Avalonia.Media.Color.Parse("#48d6ff"),
+            Avalonia.Media.Color.FromArgb(45, 72, 214, 255)))
+        .ToArray();
+
+    public IReadOnlyList<MapCircleOverlay> PlanMapCircles => Document.GeoFence.Circles
+        .Where(static circle => circle.Circle?.Center is not null)
+        .Select(static circle => new MapCircleOverlay(
+            new MapGeoPoint(circle.Circle!.Center.Latitude, circle.Circle.Center.Longitude, circle.Circle.Center.Altitude ?? 0),
+            circle.Circle.Radius,
+            true,
+            Avalonia.Media.Color.Parse("#48d6ff"),
+            Avalonia.Media.Color.FromArgb(35, 72, 214, 255)))
+        .ToArray();
+
+    public IReadOnlyList<RallyPointMarker> PlanMapRallyPoints => Document.RallyPoints.Points
+        .Select((point, index) => new RallyPointMarker(new MapGeoPoint(point.Latitude, point.Longitude, point.Altitude ?? 0), $"R{index + 1}"))
+        .ToArray();
+
+    public string PlanMapPreviewSummary => BuildPlanMapPreviewSummary(PlanMapDisplayFrame);
 
     public PlanSection ActiveSection
     {
@@ -334,6 +342,7 @@ public sealed class PlanViewModel : ViewModelBase
 
             this.RaiseAndSetIfChanged(ref _activeMapClickTool, value);
             this.RaisePropertyChanged(nameof(PlanMapClickModeText));
+            this.RaisePropertyChanged(nameof(PlanMapDisplayFrame));
         }
     }
 
@@ -569,7 +578,11 @@ public sealed class PlanViewModel : ViewModelBase
 
     public PlanCoordinate ApplyMapClick(double normalizedX, double normalizedY)
     {
-        var coordinate = ProjectMapClickCoordinate(normalizedX, normalizedY);
+        return ApplyMapClick(ProjectMapClickCoordinate(normalizedX, normalizedY));
+    }
+
+    public PlanCoordinate ApplyMapClick(PlanCoordinate coordinate)
+    {
         switch (ActiveMapClickTool)
         {
             case PlanMapClickTool.Waypoint:
@@ -595,6 +608,12 @@ public sealed class PlanViewModel : ViewModelBase
         }
 
         return coordinate;
+    }
+
+    public void MarkMapManuallyMoved(MapViewport viewport)
+    {
+        _manualMapViewport = viewport;
+        RaisePlanSectionProperties();
     }
 
     public void RemoveSelectedItem()
@@ -1064,7 +1083,7 @@ public sealed class PlanViewModel : ViewModelBase
     {
         var coordinator = new PlanSectionCoordinator(Document);
         var overlay = _planMapOverlayBuilder.Build(coordinator);
-        return _planMapDisplayProjector.Project(overlay);
+        return _planMapDisplayProjector.Project(overlay, _manualMapViewport);
     }
 
     private void RefreshDocument()
@@ -1072,12 +1091,31 @@ public sealed class PlanViewModel : ViewModelBase
         Document = CreateDocumentSnapshot();
         SelectedItem = Document.Mission.Items.FirstOrDefault();
         RaiseMissionProperties();
+        this.RaisePropertyChanged(nameof(PlanMapDisplayFrame));
+    }
+
+    private Unit ShowPlanSection(PlanSection section)
+    {
+        ActiveSection = section;
+        return Unit.Default;
+    }
+
+    private Unit SelectMapClickTool(PlanMapClickTool tool)
+    {
+        ActiveMapClickTool = tool;
+        return Unit.Default;
+    }
+
+    private Unit AddWithTool<T>(PlanMapClickTool tool, Func<T> add)
+    {
+        SelectMapClickTool(tool);
+        add();
+        return Unit.Default;
     }
 
     private Unit SetActiveMapClickTool(PlanMapClickTool tool)
     {
-        ActiveMapClickTool = tool;
-        return Unit.Default;
+        return SelectMapClickTool(tool);
     }
 
     private static PlanCoordinate ProjectMapClickCoordinate(double normalizedX, double normalizedY)
@@ -1271,6 +1309,7 @@ public sealed class PlanViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(SelectedItemSummary));
         this.RaisePropertyChanged(nameof(SelectedItemCoordinateText));
         this.RaisePropertyChanged(nameof(MissionMapMarkers));
+        this.RaisePropertyChanged(nameof(PlanMapWaypoints));
     }
 
     private static MissionPlanItem CreateWaypointItem(int doJumpId)
@@ -1297,6 +1336,15 @@ public sealed class PlanViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(GeoFenceValidationText));
         this.RaisePropertyChanged(nameof(RallyValidationText));
         this.RaisePropertyChanged(nameof(PlanImportExportStatusText));
+        this.RaisePropertyChanged(nameof(PlanMapDisplayFrame));
+        this.RaisePropertyChanged(nameof(PlanMapCenter));
+        this.RaisePropertyChanged(nameof(PlanMapZoomLevel));
+        this.RaisePropertyChanged(nameof(PlanMapScaleLatitude));
+        this.RaisePropertyChanged(nameof(PlanMapWaypoints));
+        this.RaisePropertyChanged(nameof(PlanMapMissionPath));
+        this.RaisePropertyChanged(nameof(PlanMapPolygons));
+        this.RaisePropertyChanged(nameof(PlanMapCircles));
+        this.RaisePropertyChanged(nameof(PlanMapRallyPoints));
         this.RaisePropertyChanged(nameof(PlanMapPreviewSummary));
         RaisePlanWorkflowProperties();
         RaisePlanSectionTransferProperties();

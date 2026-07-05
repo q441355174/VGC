@@ -67,6 +67,8 @@ public sealed record RallyPointMarker(
 /// <summary>Camera trigger location marker.</summary>
 public sealed record CameraTriggerMarker(MapGeoPoint Position, int PhotoIndex);
 
+public sealed record MapViewportChangedEventArgs(MapGeoPoint Center, double ZoomLevel, bool IsUserInteraction);
+
 // ════════════════════════════════════════════════════════════════
 // MAP ABSTRACTIONS (implementation-agnostic)
 // ════════════════════════════════════════════════════════════════
@@ -90,8 +92,7 @@ public interface IMapRenderer
 }
 
 /// <summary>
-/// Mapsui-backed geographic renderer. Uses Mapsui's SphericalMercator projection for
-/// QGC-equivalent screen/geo math and renders a vector fallback until tile painting is wired.
+/// Mapsui-backed geographic renderer. Uses Web Mercator math and paints OSM raster tiles.
 /// </summary>
 public sealed class MapsuiMapRenderer : IMapRenderer
 {
@@ -102,12 +103,18 @@ public sealed class MapsuiMapRenderer : IMapRenderer
         DefaultRequestHeaders = { UserAgent = { new("VGC", "1.0") } }
     };
     private static readonly string TileCacheRoot = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VGC", "maps", "osm");
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VGC", "maps", "osm-standard");
     private static readonly ConcurrentDictionary<string, Bitmap> TileBitmaps = new();
     private static readonly ConcurrentDictionary<string, Task> TileRequests = new();
 
+    private readonly Action? _invalidate;
     private MapGeoPoint _center = new(0, 0);
-    private double _zoom = 15;
+    private double _zoom = 12;
+
+    public MapsuiMapRenderer(Action? invalidate = null)
+    {
+        _invalidate = invalidate;
+    }
 
     public void SetViewport(MapGeoPoint center, double zoomLevel)
     {
@@ -120,8 +127,7 @@ public sealed class MapsuiMapRenderer : IMapRenderer
         if (controlWidth <= 0 || controlHeight <= 0) return null;
         var zoom = IntegralZoom(_zoom);
         var centerPixel = LonLatToPixel(_center.Longitude, _center.Latitude, zoom);
-        var worldPixel = (X: centerPixel.X + screenX - controlWidth / 2, Y: centerPixel.Y + screenY - controlHeight / 2);
-        var lonLat = PixelToLonLat(worldPixel.X, worldPixel.Y, zoom);
+        var lonLat = PixelToLonLat(centerPixel.X + screenX - controlWidth / 2, centerPixel.Y + screenY - controlHeight / 2, zoom);
         return new MapGeoPoint(ClampLatitude(lonLat.Latitude), WrapLongitude(lonLat.Longitude));
     }
 
@@ -152,9 +158,7 @@ public sealed class MapsuiMapRenderer : IMapRenderer
             for (var tx = minTileX; tx <= maxTileX; tx++)
             {
                 var wrappedX = ((tx % (maxIndex + 1)) + maxIndex + 1) % (maxIndex + 1);
-                var x = tx * TileSize - topLeft.X;
-                var y = ty * TileSize - topLeft.Y;
-                var dest = new Rect(x, y, TileSize, TileSize);
+                var dest = new Rect(tx * TileSize - topLeft.X, ty * TileSize - topLeft.Y, TileSize, TileSize);
                 var key = TileKey(zoom, wrappedX, ty);
                 if (TileBitmaps.TryGetValue(key, out var bitmap))
                     context.DrawImage(bitmap, dest);
@@ -165,6 +169,62 @@ public sealed class MapsuiMapRenderer : IMapRenderer
                 }
             }
         }
+    }
+
+    private void QueueTileLoad(int zoom, int x, int y, string key)
+    {
+        TileRequests.GetOrAdd(key, _ => Task.Run(async () =>
+        {
+            try
+            {
+                var path = TilePath(zoom, x, y);
+                byte[] bytes;
+                if (File.Exists(path))
+                    bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
+                else
+                {
+                    bytes = await HttpClient.GetByteArrayAsync($"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png").ConfigureAwait(false);
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                    await File.WriteAllBytesAsync(path, bytes).ConfigureAwait(false);
+                }
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!TileBitmaps.ContainsKey(key))
+                        TileBitmaps[key] = new Bitmap(new MemoryStream(bytes));
+                    _invalidate?.Invoke();
+                });
+            }
+            catch
+            {
+            }
+            finally
+            {
+                TileRequests.TryRemove(key, out Task? _);
+            }
+        }));
+    }
+
+    private static string TileKey(int zoom, int x, int y) => $"{zoom}/{x}/{y}";
+    private static string TilePath(int zoom, int x, int y) => Path.Combine(TileCacheRoot, zoom.ToString(CultureInfo.InvariantCulture), x.ToString(CultureInfo.InvariantCulture), y + ".png");
+    private static int IntegralZoom(double zoom) => Math.Clamp((int)Math.Round(zoom), 1, 19);
+    private static double ClampLatitude(double latitude) => Math.Clamp(latitude, -85.05112878, 85.05112878);
+    private static double WrapLongitude(double longitude) => ((longitude + 540) % 360) - 180;
+
+    private static (double X, double Y) LonLatToPixel(double lon, double lat, int zoom)
+    {
+        var projected = SphericalMercator.FromLonLat(lon, lat).ToMPoint();
+        var originShift = 20037508.342789244;
+        var mapSize = TileSize * Math.Pow(2, zoom);
+        return ((projected.X + originShift) / (2 * originShift) * mapSize, (originShift - projected.Y) / (2 * originShift) * mapSize);
+    }
+
+    private static (double Longitude, double Latitude) PixelToLonLat(double x, double y, int zoom)
+    {
+        var originShift = 20037508.342789244;
+        var mapSize = TileSize * Math.Pow(2, zoom);
+        var lonLat = SphericalMercator.ToLonLat(x / mapSize * (2 * originShift) - originShift, originShift - y / mapSize * (2 * originShift));
+        return (lonLat.lon, lonLat.lat);
     }
 
     private static void DrawBackground(DrawingContext context, Rect bounds)
@@ -190,66 +250,6 @@ public sealed class MapsuiMapRenderer : IMapRenderer
             FlowDirection.LeftToRight, Typeface.Default, 10, new SolidColorBrush(QgcColors.TextSecondary));
         context.DrawText(text, new Point(dest.X + 6, dest.Y + 6));
     }
-
-    private static void QueueTileLoad(int zoom, int x, int y, string key)
-    {
-        TileRequests.GetOrAdd(key, _ => Task.Run(async () =>
-        {
-            try
-            {
-                var path = TilePath(zoom, x, y);
-                byte[] bytes;
-                if (File.Exists(path))
-                    bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
-                else
-                {
-                    bytes = await HttpClient.GetByteArrayAsync($"https://tile.openstreetmap.org/{zoom}/{x}/{y}.png").ConfigureAwait(false);
-                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                    await File.WriteAllBytesAsync(path, bytes).ConfigureAwait(false);
-                }
-
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    if (!TileBitmaps.ContainsKey(key))
-                        TileBitmaps[key] = new Bitmap(new MemoryStream(bytes));
-                });
-            }
-            catch
-            {
-                // Keep the loading tile visible; later renders can retry after request removal.
-            }
-            finally
-            {
-                TileRequests.TryRemove(key, out Task? _);
-            }
-        }));
-    }
-
-    private static string TileKey(int zoom, int x, int y) => $"{zoom}/{x}/{y}";
-    private static string TilePath(int zoom, int x, int y) => Path.Combine(TileCacheRoot, zoom.ToString(CultureInfo.InvariantCulture), x.ToString(CultureInfo.InvariantCulture), y + ".png");
-    private static int IntegralZoom(double zoom) => Math.Clamp((int)Math.Round(zoom), 1, 19);
-    private static double ClampLatitude(double latitude) => Math.Clamp(latitude, -85.05112878, 85.05112878);
-    private static double WrapLongitude(double longitude) => ((longitude + 540) % 360) - 180;
-
-    private static (double X, double Y) LonLatToPixel(double lon, double lat, int zoom)
-    {
-        var projected = SphericalMercator.FromLonLat(lon, lat).ToMPoint();
-        var originShift = 20037508.342789244;
-        var mapSize = TileSize * Math.Pow(2, zoom);
-        var x = (projected.X + originShift) / (2 * originShift) * mapSize;
-        var y = (originShift - projected.Y) / (2 * originShift) * mapSize;
-        return (x, y);
-    }
-
-    private static (double Longitude, double Latitude) PixelToLonLat(double x, double y, int zoom)
-    {
-        var originShift = 20037508.342789244;
-        var mapSize = TileSize * Math.Pow(2, zoom);
-        var mx = x / mapSize * (2 * originShift) - originShift;
-        var my = originShift - y / mapSize * (2 * originShift);
-        var lonLat = SphericalMercator.ToLonLat(mx, my);
-        return (lonLat.lon, lonLat.lat);
-    }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -264,25 +264,53 @@ public sealed class MapsuiMapRenderer : IMapRenderer
 /// </summary>
 public sealed class FlightMapControl : Control
 {
+    private const double DragThresholdPixels = 4;
+    private const double LongPressMilliseconds = 650;
+
     private IMapRenderer _renderer;
+    private Point? _pressPoint;
+    private Point? _lastDragPoint;
+    private DateTimeOffset _pressTime;
+    private bool _dragging;
 
     public static readonly StyledProperty<MapGeoPoint> CenterProperty =
         AvaloniaProperty.Register<FlightMapControl, MapGeoPoint>(nameof(Center), new MapGeoPoint(0, 0));
 
     public static readonly StyledProperty<double> ZoomLevelProperty =
-        AvaloniaProperty.Register<FlightMapControl, double>(nameof(ZoomLevel), 15);
+        AvaloniaProperty.Register<FlightMapControl, double>(nameof(ZoomLevel), 12);
 
     public static readonly StyledProperty<bool> FollowVehicleProperty =
         AvaloniaProperty.Register<FlightMapControl, bool>(nameof(FollowVehicle), true);
 
+    public static readonly StyledProperty<IEnumerable<VehicleMapMarker>?> VehiclesSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<VehicleMapMarker>?>(nameof(VehiclesSource));
+
+    public static readonly StyledProperty<IEnumerable<MapGeoPoint>?> MissionPathSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<MapGeoPoint>?>(nameof(MissionPathSource));
+
+    public static readonly StyledProperty<IEnumerable<MissionMarker>?> WaypointsSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<MissionMarker>?>(nameof(WaypointsSource));
+
+    public static readonly StyledProperty<IEnumerable<MapCircleOverlay>?> CirclesSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<MapCircleOverlay>?>(nameof(CirclesSource));
+
+    public static readonly StyledProperty<IEnumerable<MapPolygonOverlay>?> PolygonsSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<MapPolygonOverlay>?>(nameof(PolygonsSource));
+
+    public static readonly StyledProperty<IEnumerable<MapPolylineOverlay>?> PolylinesSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<MapPolylineOverlay>?>(nameof(PolylinesSource));
+
+    public static readonly StyledProperty<IEnumerable<RallyPointMarker>?> RallyPointsSourceProperty =
+        AvaloniaProperty.Register<FlightMapControl, IEnumerable<RallyPointMarker>?>(nameof(RallyPointsSource));
+
     static FlightMapControl()
     {
-        AffectsRender<FlightMapControl>(CenterProperty, ZoomLevelProperty);
+        AffectsRender<FlightMapControl>(CenterProperty, ZoomLevelProperty, VehiclesSourceProperty, MissionPathSourceProperty, WaypointsSourceProperty, CirclesSourceProperty, PolygonsSourceProperty, PolylinesSourceProperty, RallyPointsSourceProperty);
     }
 
     public FlightMapControl()
     {
-        _renderer = new MapsuiMapRenderer();
+        _renderer = new MapsuiMapRenderer(InvalidateVisual);
         Vehicles = [];
         MissionPath = [];
         Waypoints = [];
@@ -296,6 +324,13 @@ public sealed class FlightMapControl : Control
     public MapGeoPoint Center { get => GetValue(CenterProperty); set { SetValue(CenterProperty, value); _renderer.SetViewport(value, ZoomLevel); } }
     public double ZoomLevel { get => GetValue(ZoomLevelProperty); set { SetValue(ZoomLevelProperty, value); _renderer.SetViewport(Center, value); } }
     public bool FollowVehicle { get => GetValue(FollowVehicleProperty); set => SetValue(FollowVehicleProperty, value); }
+    public IEnumerable<VehicleMapMarker>? VehiclesSource { get => GetValue(VehiclesSourceProperty); set => SetValue(VehiclesSourceProperty, value); }
+    public IEnumerable<MapGeoPoint>? MissionPathSource { get => GetValue(MissionPathSourceProperty); set => SetValue(MissionPathSourceProperty, value); }
+    public IEnumerable<MissionMarker>? WaypointsSource { get => GetValue(WaypointsSourceProperty); set => SetValue(WaypointsSourceProperty, value); }
+    public IEnumerable<MapCircleOverlay>? CirclesSource { get => GetValue(CirclesSourceProperty); set => SetValue(CirclesSourceProperty, value); }
+    public IEnumerable<MapPolygonOverlay>? PolygonsSource { get => GetValue(PolygonsSourceProperty); set => SetValue(PolygonsSourceProperty, value); }
+    public IEnumerable<MapPolylineOverlay>? PolylinesSource { get => GetValue(PolylinesSourceProperty); set => SetValue(PolylinesSourceProperty, value); }
+    public IEnumerable<RallyPointMarker>? RallyPointsSource { get => GetValue(RallyPointsSourceProperty); set => SetValue(RallyPointsSourceProperty, value); }
 
     // Overlay collections
     public ObservableCollection<VehicleMapMarker> Vehicles { get; }
@@ -309,7 +344,8 @@ public sealed class FlightMapControl : Control
 
     // Events
     public event EventHandler<MapGeoPoint>? MapClicked;
-    public event EventHandler<MapGeoPoint>? MapLongPressed { add { } remove { } }
+    public event EventHandler<MapGeoPoint>? MapLongPressed;
+    public event EventHandler<MapViewportChangedEventArgs>? ViewportChanged;
 
     /// <summary>Replace the map renderer (call when Mapsui/GMap is available).</summary>
     public void SetRenderer(IMapRenderer renderer)
@@ -327,40 +363,49 @@ public sealed class FlightMapControl : Control
         // 1. Map tiles
         _renderer.RenderTiles(context, new Rect(0, 0, bounds.Width, bounds.Height));
 
+        var polylines = PolylinesSource ?? Polylines;
+        var polygons = PolygonsSource ?? Polygons;
+        var circles = CirclesSource ?? Circles;
+        var missionPath = MissionPathSource?.ToArray() ?? MissionPath.ToArray();
+        var cameraTriggers = CameraTriggers;
+        var rallyPoints = RallyPointsSource ?? RallyPoints;
+        var waypoints = WaypointsSource ?? Waypoints;
+        var vehicles = VehiclesSource?.ToArray() ?? Vehicles.ToArray();
+
         // 2. Polylines (mission paths, corridors)
-        foreach (var pl in Polylines)
+        foreach (var pl in polylines)
             RenderPolyline(context, pl, bounds);
 
         // 3. Polygons (geofence)
-        foreach (var pg in Polygons)
+        foreach (var pg in polygons)
             RenderPolygon(context, pg, bounds);
 
         // 4. Circles (geofence)
-        foreach (var c in Circles)
+        foreach (var c in circles)
             RenderCircle(context, c, bounds);
 
         // 5. Mission path line
-        if (MissionPath.Count > 1)
-            RenderMissionPath(context, bounds);
+        if (missionPath.Length > 1)
+            RenderMissionPath(context, bounds, missionPath);
 
         // 6. Camera triggers
-        foreach (var ct in CameraTriggers)
+        foreach (var ct in cameraTriggers)
             RenderCameraTrigger(context, ct, bounds);
 
         // 7. Rally points
-        foreach (var rp in RallyPoints)
+        foreach (var rp in rallyPoints)
             RenderRallyPoint(context, rp, bounds);
 
         // 8. Waypoints
-        foreach (var wp in Waypoints)
+        foreach (var wp in waypoints)
             RenderWaypoint(context, wp, bounds);
 
         // 9. Vehicles (on top)
-        foreach (var v in Vehicles)
+        foreach (var v in vehicles)
             RenderVehicle(context, v, bounds);
 
         // 10. Center crosshair when no vehicle
-        if (Vehicles.Count == 0)
+        if (vehicles.Length == 0)
             RenderCrosshair(context, bounds);
     }
 
@@ -431,13 +476,13 @@ public sealed class FlightMapControl : Control
         context.DrawText(numText, new Point(x - numText.Width / 2, y - numText.Height / 2));
     }
 
-    private void RenderMissionPath(DrawingContext context, Rect bounds)
+    private void RenderMissionPath(DrawingContext context, Rect bounds, IReadOnlyList<MapGeoPoint> missionPath)
     {
         var pen = new Pen(new SolidColorBrush(QgcColors.ColorBlue), 2);
-        for (var i = 0; i < MissionPath.Count - 1; i++)
+        for (var i = 0; i < missionPath.Count - 1; i++)
         {
-            var p1 = _renderer.GeoToScreen(MissionPath[i], bounds.Width, bounds.Height);
-            var p2 = _renderer.GeoToScreen(MissionPath[i + 1], bounds.Width, bounds.Height);
+            var p1 = _renderer.GeoToScreen(missionPath[i], bounds.Width, bounds.Height);
+            var p2 = _renderer.GeoToScreen(missionPath[i + 1], bounds.Width, bounds.Height);
             if (p1 is not null && p2 is not null)
                 context.DrawLine(pen, new Point(p1.Value.X, p1.Value.Y), new Point(p2.Value.X, p2.Value.Y));
         }
@@ -548,10 +593,94 @@ public sealed class FlightMapControl : Control
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
+        _pressPoint = e.GetPosition(this);
+        _lastDragPoint = _pressPoint;
+        _pressTime = DateTimeOffset.UtcNow;
+        _dragging = false;
+        e.Pointer.Capture(this);
+        e.Handled = true;
+    }
+
+    protected override void OnPointerMoved(PointerEventArgs e)
+    {
+        base.OnPointerMoved(e);
+        if (_lastDragPoint is not { } last || _pressPoint is not { } press)
+        {
+            return;
+        }
+
+        var current = e.GetPosition(this);
+        var totalDelta = current - press;
+        if (!_dragging && Math.Sqrt(totalDelta.X * totalDelta.X + totalDelta.Y * totalDelta.Y) < DragThresholdPixels)
+        {
+            return;
+        }
+
+        var previousGeo = _renderer.ScreenToGeo(last.X, last.Y, Bounds.Width, Bounds.Height);
+        var currentGeo = _renderer.ScreenToGeo(current.X, current.Y, Bounds.Width, Bounds.Height);
+        if (previousGeo is not null && currentGeo is not null)
+        {
+            _dragging = true;
+            SetUserViewport(new MapGeoPoint(
+                Center.Latitude + previousGeo.Latitude - currentGeo.Latitude,
+                Center.Longitude + previousGeo.Longitude - currentGeo.Longitude,
+                Center.Altitude),
+                ZoomLevel);
+        }
+
+        _lastDragPoint = current;
+        e.Handled = true;
+    }
+
+    protected override void OnPointerReleased(PointerReleasedEventArgs e)
+    {
+        base.OnPointerReleased(e);
+        e.Pointer.Capture(null);
         var pos = e.GetPosition(this);
         var geo = _renderer.ScreenToGeo(pos.X, pos.Y, Bounds.Width, Bounds.Height);
-        if (geo is not null)
-            MapClicked?.Invoke(this, geo);
+        if (!_dragging && geo is not null)
+        {
+            if ((DateTimeOffset.UtcNow - _pressTime).TotalMilliseconds >= LongPressMilliseconds)
+                MapLongPressed?.Invoke(this, geo);
+            else
+                MapClicked?.Invoke(this, geo);
+        }
+
+        _pressPoint = null;
+        _lastDragPoint = null;
+        _dragging = false;
+        e.Handled = true;
+    }
+
+    protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
+    {
+        base.OnPointerWheelChanged(e);
+        var pos = e.GetPosition(this);
+        var anchorBefore = _renderer.ScreenToGeo(pos.X, pos.Y, Bounds.Width, Bounds.Height);
+        if (anchorBefore is null)
+        {
+            return;
+        }
+
+        var newZoom = Math.Clamp(ZoomLevel + Math.Sign(e.Delta.Y), 1, 19);
+        _renderer.SetViewport(Center, newZoom);
+        var anchorAfter = _renderer.ScreenToGeo(pos.X, pos.Y, Bounds.Width, Bounds.Height);
+        var newCenter = anchorAfter is null
+            ? Center
+            : new MapGeoPoint(
+                Center.Latitude + anchorBefore.Latitude - anchorAfter.Latitude,
+                Center.Longitude + anchorBefore.Longitude - anchorAfter.Longitude,
+                Center.Altitude);
+        SetUserViewport(newCenter, newZoom);
+        e.Handled = true;
+    }
+
+    private void SetUserViewport(MapGeoPoint center, double zoomLevel)
+    {
+        Center = center;
+        ZoomLevel = zoomLevel;
+        ViewportChanged?.Invoke(this, new MapViewportChangedEventArgs(center, zoomLevel, true));
+        InvalidateVisual();
     }
 }
 

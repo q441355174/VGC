@@ -36,9 +36,33 @@ public sealed class MapProviderHost : IMapProviderAdapterFactory
         return new MapProviderHost([new LocalMapRuntime()]);
     }
 
+    public static MapProviderHost CreateDesktopDefault(TiandituApiKeyService? tiandituApiKeyService = null)
+    {
+        var tianditu = new TiandituRasterAdapter(tiandituApiKeyService ?? new TiandituApiKeyService());
+        var adapters = new List<IMapProviderAdapter>
+        {
+            new LocalMapRuntime(),
+            new RasterTileMapAdapter(MapProviderCatalog.MapsuiOsmRaster)
+        };
+
+        if (tianditu.IsAvailable)
+        {
+            adapters.Add(tianditu);
+        }
+
+        return new MapProviderHost(adapters, MapProviderKind.MapsuiRaster);
+    }
+
     public MapProviderHostState State => new(_activeAdapter.Descriptor, GetAvailableProviders());
 
     public IMapProviderAdapter ActiveAdapter => _activeAdapter;
+
+    public MapProviderDescriptor ActiveProvider => _activeAdapter.Descriptor;
+
+    public IMapRasterTileSource? ActiveRasterTiles => _activeAdapter as IMapRasterTileSource;
+
+    public MapTileLayerDescriptor? ActiveBaseLayer =>
+        _activeAdapter.Descriptor.TileLayers.FirstOrDefault(static layer => layer.Template is not null);
 
     public IReadOnlyList<MapProviderDescriptor> GetAvailableProviders()
     {

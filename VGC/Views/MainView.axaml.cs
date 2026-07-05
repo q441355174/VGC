@@ -9,18 +9,40 @@ namespace VGC.Views;
 
 public partial class MainView : UserControl
 {
+    private ShellViewModel? _subscribedVm;
+
     public MainView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
+        if (_subscribedVm is not null)
+        {
+            _subscribedVm.PropertyChanged -= OnShellPropertyChanged;
+            _subscribedVm = null;
+        }
+
         if (DataContext is ShellViewModel vm)
         {
-            vm.PropertyChanged += OnShellPropertyChanged;
+            _subscribedVm = vm;
+            _subscribedVm.PropertyChanged += OnShellPropertyChanged;
+            UpdateDynamicLayout(Bounds.Width);
         }
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (_subscribedVm is null)
+        {
+            return;
+        }
+
+        _subscribedVm.PropertyChanged -= OnShellPropertyChanged;
+        _subscribedVm = null;
     }
 
     private void OnShellPropertyChanged(object? sender, PropertyChangedEventArgs e)

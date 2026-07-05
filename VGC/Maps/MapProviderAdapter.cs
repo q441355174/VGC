@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace VGC.Maps;
 
 public enum MapProviderKind
@@ -89,6 +91,48 @@ public interface IMapProviderAdapterFactory
     IReadOnlyList<MapProviderDescriptor> GetAvailableProviders();
 
     IMapProviderAdapter CreateProvider(MapProviderKind kind);
+}
+
+public interface IMapRasterTileSource
+{
+    MapProviderDescriptor Descriptor { get; }
+
+    Task<byte[]?> FetchTileAsync(string layerId, int z, int x, int y, CancellationToken cancellationToken = default);
+}
+
+public static class MapTileUrlBuilder
+{
+    public static string? Build(
+        MapTileLayerDescriptor layer,
+        int z,
+        int x,
+        int y,
+        Func<string, string?>? tokenResolver = null)
+    {
+        if (layer.Template is not { } template)
+        {
+            return null;
+        }
+
+        var url = template
+            .Replace("{z}", z.ToString(CultureInfo.InvariantCulture))
+            .Replace("{x}", x.ToString(CultureInfo.InvariantCulture))
+            .Replace("{y}", y.ToString(CultureInfo.InvariantCulture))
+            .Replace("{s}", "a");
+
+        if (layer.ApiKeyParameterName is { } keyName)
+        {
+            var token = tokenResolver?.Invoke(keyName);
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                return null;
+            }
+
+            url = url.Replace("{tk}", token);
+        }
+
+        return url.Contains('{', StringComparison.Ordinal) ? null : url;
+    }
 }
 
 public static class MapProviderCatalog

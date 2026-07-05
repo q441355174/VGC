@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using VGC.Analyze;
 
 namespace VGC.Views.Controls;
 
@@ -593,70 +594,117 @@ public class InstrumentValueEditDialog : PopupDialog
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TelemetryChartPlaceholder  (#173 — OxyPlot chart placeholder)
-// Renders a dashed-border panel with a "Install OxyPlot.Avalonia NuGet package
-// to enable charts" message.  Replaced by a real chart control once OxyPlot
-// is added to the project.
+// TelemetryChartPlaceholder  (#173 — minimal telemetry chart)
+// ponytail: simple line renderer; switch to OxyPlot if zoom/tooltips/export matter.
 // ─────────────────────────────────────────────────────────────────────────────
 public sealed class TelemetryChartPlaceholder : Control
 {
+    private static readonly Color[] SeriesColors =
+    [
+        Color.Parse("#34d37b"),
+        Color.Parse("#4aa3ff"),
+        Color.Parse("#ffb84d"),
+        Color.Parse("#d26bff"),
+        Color.Parse("#ff6b6b")
+    ];
+
     public static readonly StyledProperty<string> ChartTitleProperty =
         AvaloniaProperty.Register<TelemetryChartPlaceholder, string>(nameof(ChartTitle), "Chart");
     public static readonly StyledProperty<string> ChartXLabelProperty =
         AvaloniaProperty.Register<TelemetryChartPlaceholder, string>(nameof(ChartXLabel), "Time (s)");
     public static readonly StyledProperty<string> ChartYLabelProperty =
         AvaloniaProperty.Register<TelemetryChartPlaceholder, string>(nameof(ChartYLabel), "Value");
+    public static readonly StyledProperty<TelemetryChartSnapshot?> SnapshotProperty =
+        AvaloniaProperty.Register<TelemetryChartPlaceholder, TelemetryChartSnapshot?>(nameof(Snapshot));
 
     static TelemetryChartPlaceholder()
     {
-        AffectsRender<TelemetryChartPlaceholder>(ChartTitleProperty, ChartXLabelProperty, ChartYLabelProperty);
+        AffectsRender<TelemetryChartPlaceholder>(ChartTitleProperty, ChartXLabelProperty, ChartYLabelProperty, SnapshotProperty);
     }
 
     public string ChartTitle  { get => GetValue(ChartTitleProperty);  set => SetValue(ChartTitleProperty, value); }
     public string ChartXLabel { get => GetValue(ChartXLabelProperty); set => SetValue(ChartXLabelProperty, value); }
     public string ChartYLabel { get => GetValue(ChartYLabelProperty); set => SetValue(ChartYLabelProperty, value); }
+    public TelemetryChartSnapshot? Snapshot { get => GetValue(SnapshotProperty); set => SetValue(SnapshotProperty, value); }
 
     public override void Render(DrawingContext ctx)
     {
-        var dfh    = ScreenMetrics.DefaultFontPixelHeight;
+        var dfh = ScreenMetrics.DefaultFontPixelHeight;
         var bounds = new Rect(Bounds.Size);
+        var plot = new Rect(46, dfh * 2.2, Math.Max(1, bounds.Width - 62), Math.Max(1, bounds.Height - dfh * 4.8));
 
-        // Background + dashed border
         ctx.DrawRectangle(new SolidColorBrush(QgcColors.WindowShade), null, bounds);
-        ctx.DrawRectangle(null,
-            new Pen(new SolidColorBrush(QgcColors.ColorGrey), 1) { DashStyle = DashStyle.Dash },
-            bounds.Deflate(2));
+        ctx.DrawRectangle(null, new Pen(new SolidColorBrush(QgcColors.ColorGrey), 1), bounds.Deflate(2));
 
-        // Title at top
-        var ftTitle = new FormattedText(ChartTitle, System.Globalization.CultureInfo.CurrentUICulture,
-            FlowDirection.LeftToRight, Typeface.Default, dfh,
-            new SolidColorBrush(QgcColors.Text));
-        ctx.DrawText(ftTitle, new Point((bounds.Width - ftTitle.Width) / 2, dfh * 0.5));
+        DrawCenteredText(ctx, ChartTitle, dfh, QgcColors.Text, new Point(bounds.Width / 2, dfh * 0.5));
+        DrawAxisLabels(ctx, bounds, dfh);
 
-        // Placeholder message centred
-        const string msg = "Install OxyPlot.Avalonia NuGet package to enable charts";
-        var ftMsg = new FormattedText(msg, System.Globalization.CultureInfo.CurrentUICulture,
-            FlowDirection.LeftToRight, Typeface.Default, dfh * 0.85,
-            new SolidColorBrush(QgcColors.TextSecondary));
-        ctx.DrawText(ftMsg, new Point((bounds.Width - ftMsg.Width) / 2, (bounds.Height - ftMsg.Height) / 2));
+        var axisPen = new Pen(new SolidColorBrush(QgcColors.ColorGrey), 1);
+        ctx.DrawLine(axisPen, plot.BottomLeft, plot.BottomRight);
+        ctx.DrawLine(axisPen, plot.BottomLeft, plot.TopLeft);
 
-        // Axis labels
+        var series = Snapshot?.Series ?? [];
+        var allPoints = series.SelectMany(static s => s.DataPoints).ToArray();
+        if (allPoints.Length == 0)
+        {
+            DrawCenteredText(ctx, "No telemetry samples", dfh * 0.85, QgcColors.TextSecondary, plot.Center);
+            return;
+        }
+
+        var minX = allPoints.Min(static p => p.Timestamp);
+        var maxX = allPoints.Max(static p => p.Timestamp);
+        var minY = allPoints.Min(static p => p.Value);
+        var maxY = allPoints.Max(static p => p.Value);
+        if (Math.Abs(maxX - minX) < double.Epsilon) maxX = minX + 1;
+        if (Math.Abs(maxY - minY) < double.Epsilon) maxY = minY + 1;
+
+        for (var i = 0; i < series.Count; i++)
+        {
+            DrawSeries(ctx, plot, series[i], minX, maxX, minY, maxY, SeriesColors[i % SeriesColors.Length]);
+        }
+    }
+
+    private static void DrawSeries(DrawingContext ctx, Rect plot, TelemetryDataSeries series, double minX, double maxX, double minY, double maxY, Color color)
+    {
+        if (series.DataPoints.Count < 2) return;
+
+        var geometry = new StreamGeometry();
+        using (var gc = geometry.Open())
+        {
+            var first = MapPoint(series.DataPoints[0], plot, minX, maxX, minY, maxY);
+            gc.BeginFigure(first, false);
+            foreach (var point in series.DataPoints.Skip(1))
+            {
+                gc.LineTo(MapPoint(point, plot, minX, maxX, minY, maxY));
+            }
+        }
+
+        ctx.DrawGeometry(null, new Pen(new SolidColorBrush(color), 2), geometry);
+    }
+
+    private static Point MapPoint(TelemetryDataPoint point, Rect plot, double minX, double maxX, double minY, double maxY)
+    {
+        var x = plot.Left + ((point.Timestamp - minX) / (maxX - minX)) * plot.Width;
+        var y = plot.Bottom - ((point.Value - minY) / (maxY - minY)) * plot.Height;
+        return new Point(x, y);
+    }
+
+    private static void DrawCenteredText(DrawingContext ctx, string text, double size, Color color, Point center)
+    {
+        var ft = new FormattedText(text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Typeface.Default, size, new SolidColorBrush(color));
+        ctx.DrawText(ft, new Point(center.X - ft.Width / 2, center.Y));
+    }
+
+    private void DrawAxisLabels(DrawingContext ctx, Rect bounds, double dfh)
+    {
         if (!string.IsNullOrEmpty(ChartXLabel))
         {
-            var ftX = new FormattedText(ChartXLabel, System.Globalization.CultureInfo.CurrentUICulture,
-                FlowDirection.LeftToRight, Typeface.Default, dfh * 0.75,
-                new SolidColorBrush(QgcColors.TextSecondary));
-            ctx.DrawText(ftX, new Point((bounds.Width - ftX.Width) / 2, bounds.Height - dfh * 1.2));
+            DrawCenteredText(ctx, ChartXLabel, dfh * 0.75, QgcColors.TextSecondary, new Point(bounds.Width / 2, bounds.Height - dfh * 1.2));
         }
         if (!string.IsNullOrEmpty(ChartYLabel))
         {
-            var ftY = new FormattedText(ChartYLabel, System.Globalization.CultureInfo.CurrentUICulture,
-                FlowDirection.LeftToRight, Typeface.Default, dfh * 0.75,
-                new SolidColorBrush(QgcColors.TextSecondary));
-            // Rotate Y label 90°
-            using var _ = ctx.PushTransform(
-                Matrix.CreateRotation(-Math.PI / 2) *
-                Matrix.CreateTranslation(dfh * 1.2, bounds.Height / 2 + ftY.Width / 2));
+            var ftY = new FormattedText(ChartYLabel, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Typeface.Default, dfh * 0.75, new SolidColorBrush(QgcColors.TextSecondary));
+            using var _ = ctx.PushTransform(Matrix.CreateRotation(-Math.PI / 2) * Matrix.CreateTranslation(dfh * 1.2, bounds.Height / 2 + ftY.Width / 2));
             ctx.DrawText(ftY, new Point(0, 0));
         }
     }

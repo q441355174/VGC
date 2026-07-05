@@ -9,10 +9,24 @@ namespace VGC.Views;
 
 public partial class SetupView : UserControl
 {
+    private SetupViewModel? _subscribedVm;
+
     public SetupView()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
+        DetachedFromVisualTree += OnDetachedFromVisualTree;
+    }
+
+    private void OnDetachedFromVisualTree(object? sender, VisualTreeAttachmentEventArgs e)
+    {
+        if (_subscribedVm is null)
+        {
+            return;
+        }
+
+        _subscribedVm.PropertyChanged -= OnSetupViewModelPropertyChanged;
+        _subscribedVm = null;
     }
 
     private void OnSetupViewSizeChanged(object? sender, SizeChangedEventArgs e)
@@ -34,15 +48,30 @@ public partial class SetupView : UserControl
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
+        if (_subscribedVm is not null)
+        {
+            _subscribedVm.PropertyChanged -= OnSetupViewModelPropertyChanged;
+            _subscribedVm = null;
+        }
+
         if (DataContext is SetupViewModel vm)
         {
-            vm.PropertyChanged += (_, args) =>
-            {
-                if (args.PropertyName == nameof(SetupViewModel.SelectedDetailTab))
-                {
-                    UpdateDetailPanelVisibility(vm.SelectedDetailTab);
-                }
-            };
+            _subscribedVm = vm;
+            _subscribedVm.PropertyChanged += OnSetupViewModelPropertyChanged;
+            UpdateDetailPanelVisibility(vm.DetailTabKind);
+        }
+    }
+
+    private void OnSetupViewModelPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (sender is not SetupViewModel vm)
+        {
+            return;
+        }
+
+        if (args.PropertyName == nameof(SetupViewModel.SelectedDetailTab) || args.PropertyName == nameof(SetupViewModel.DetailTabKind))
+        {
+            UpdateDetailPanelVisibility(vm.DetailTabKind);
         }
     }
 
@@ -66,7 +95,6 @@ public partial class SetupView : UserControl
     {
         if (sender is Button button && button.Tag is string componentId && DataContext is SetupViewModel vm)
         {
-            vm.HideSpecialPages();
             vm.SelectComponent(componentId);
         }
     }
@@ -163,7 +191,7 @@ public partial class SetupView : UserControl
         }
     }
 
-    private void UpdateDetailPanelVisibility(string tab)
+    private void UpdateDetailPanelVisibility(SetupDetailTabKind tab)
     {
         var safetyPanel = this.FindControl<StackPanel>("SafetyDetailPanel");
         var sensorsPanel = this.FindControl<StackPanel>("SensorsDetailPanel");
@@ -171,15 +199,15 @@ public partial class SetupView : UserControl
         var flightModesPanel = this.FindControl<StackPanel>("FlightModesDetailPanel");
         var genericPanel = this.FindControl<StackPanel>("GenericDetailPanel");
 
-        if (safetyPanel is not null) safetyPanel.IsVisible = tab == "safety";
-        if (sensorsPanel is not null) sensorsPanel.IsVisible = tab == "sensors";
-        if (radioPanel is not null) radioPanel.IsVisible = tab == "radio";
-        if (flightModesPanel is not null) flightModesPanel.IsVisible = tab == "flight-modes";
+        if (safetyPanel is not null) safetyPanel.IsVisible = tab == SetupDetailTabKind.Safety;
+        if (sensorsPanel is not null) sensorsPanel.IsVisible = tab == SetupDetailTabKind.Sensors;
+        if (radioPanel is not null) radioPanel.IsVisible = tab == SetupDetailTabKind.Radio;
+        if (flightModesPanel is not null) flightModesPanel.IsVisible = tab == SetupDetailTabKind.FlightModes;
 
-        var isSpecific = tab is "safety" or "sensors" or "radio" or "flight-modes" or "none";
+        var isSpecific = tab is SetupDetailTabKind.Safety or SetupDetailTabKind.Sensors or SetupDetailTabKind.Radio or SetupDetailTabKind.FlightModes or SetupDetailTabKind.None;
         if (genericPanel is not null)
         {
-            genericPanel.IsVisible = !isSpecific && tab != "none";
+            genericPanel.IsVisible = !isSpecific && tab != SetupDetailTabKind.None;
 
             if (genericPanel.IsVisible && DataContext is SetupViewModel vm)
             {

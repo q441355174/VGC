@@ -1,136 +1,121 @@
-# QGC → VGC 控件映射与移植状态
+# QGC → VGC 移植进度清单
 
-> 更新日期: 2026-07-02  
-> 基准: 当前 VGC 源码 + QGC 控件移植文档核对  
-> 结论: UI 控件外观/交互层基本完成；生产级 QGC 等价仍受地图、视频、图表、MAVLink dialect、固件真实流程验证限制。
+> 更新日期: 2026-07-05  
+> 基准: `E:/Code/VGC/qgroundcontrol/src` 与当前 VGC 源码  
+> 权威状态源: `VGC/Release/QgcSourcePortInventory.cs`, `VGC/ViewModels/QgcQmlParityCatalog.cs`, `VGC/Release/QgcReplacementAudit.cs`, `VGC/Release/FullPortAudit.cs`
 
----
+## 结论
 
-## 1. 总体口径
-
-| 口径 | 当前判断 |
-|---|---:|
-| QGC 控件外观/交互覆盖 | 约 90–95% |
-| 页面布局与操作逻辑覆盖 | 约 85–90% |
-| 可连接 MAVLink 的基础 GCS 功能 | 约 70% |
-| 接近 QGC 生产级功能等价 | 约 55–65% |
-| 全面移植完成 | 否 |
-
-说明: 本文的 DONE 表示 VGC 已有对应 UI 控件或功能边界；不等同于已经完成真实地图瓦片、真实视频解码、完整 MAVLink dialect、真实 PX4/ArduPilot 硬件闭环。
-
----
-
-## 2. 状态标记
-
-| 状态 | 含义 |
+| 项 | 当前状态 |
 |---|---|
-| DONE | 已有 VGC 对应实现，外观/交互或功能边界接近 QGC |
-| PARTIAL | 已实现主要结构，但交互、数据源、真实运行时或精度不足 |
-| TODO | 尚无可用实现 |
-| NATIVE | 由 Avalonia 原生控件替代 |
-| BLOCKED | 依赖外部库、完整 dialect、平台能力或真实硬件验证 |
-| SKIP | QGC 专属结构在 VGC 架构中不需要单独实现 |
+| QGC 源码级 parity | 未完成 |
+| QGC replacement | 未完成 |
+| Release packaging | 已通过 |
+| Final replacement acceptance | 未完成 |
+| 桌面端核心 UI | 基本可运行 |
+| Fly/Plan 地图 | 已有在线 raster 底图、基础交互和 overlay；离线/Android/SITL 仍缺 |
+| 主要阻塞 | Android workload/device、SITL、真实硬件、视频播放、完整 MAVLink dialect、release artifacts |
 
----
+当前不能声明“完整移植”。进度应以源码级 inventory 和测试中的防过度声明为准。
 
-## 3. 控件库文件清单
+## 源码覆盖统计
 
-| 文件 | 当前行数 | 主要覆盖 |
+| QGC source | Count | VGC 状态 |
 |---|---:|---|
-| `Views/Controls/SetupControls.cs` | 2560 | 校准、机架、电机、电源、PID、摇杆、参数搜索、云台 |
-| `Views/Controls/MapControls.cs` | 2891 | 地图覆盖物、任务项、围栏、航迹、雷达、相机/云台叠加、命令摘要 |
-| `Views/Controls/ToolbarIndicators.cs` | 3317 | Toolbar 指示器、ToolStrip、延迟按钮、信号/速度/高度/状态控件 |
-| `Views/Controls/FactControls.cs` | 2230 | Fact 输入、标签、表格、单位换算、任务行、遥测格 |
-| `Views/Controls/AnalyzeControls.cs` | 1360 | 参数对话框、Log、GeoTag、频谱、MAVLink 状态行 |
-| `Views/Controls/AttitudeIndicator.cs` | 567 | 姿态仪、罗盘、航向、垂直仪表 |
-| `Views/Controls/DialogSystem.cs` | 3249 | 弹窗、Toast、文件对话框、页签、滑动确认、KML/SHP、位置编辑 |
-| `Views/Controls/SettingsControls.cs` | 619 | General、Connection、OfflineMap、NTRIP、MAVLink 设置 |
-| `Views/Controls/QgcTheme.cs` | 123 | QGC 颜色和尺寸常量 |
-| `Views/Controls/SetupControlModels.cs` | 235 | Setup/Checklist 数据模型 |
+| `src/**/*.qml` | 442 | 已按 QML 模块建账 |
+| `src/**/*.cc` | 497 | 已纳入源码级清单，后端多数为 partial |
+| `src/**/*.h` | 571 | 已纳入源码级清单，后端多数为 partial |
 
----
+| VGC area | `.cs` count | 说明 |
+|---|---:|---|
+| `Mission` | 36 | Plan、Mission/Fence/Rally、transfer、complex preview |
+| `Comms` | 31 | Serial/TCP/UDP/mock/replay、Android 边界 |
+| `Mavlink` | 30 | parser/writer/CRC/部分 message/service |
+| `Vehicles` | 24 | 多机、状态、fact group、命令边界 |
+| `Maps` | 18 | provider、tile source、cache/offline 框架 |
+| `Payload` | 16 | video/camera/gimbal 状态与命令边界 |
+| `Analyze` | 14 | inspector、replay、logs、geotag、chart runtime |
+| `Firmware` | 14 | PX4/APM profiles、命令能力、setup parity |
+| `Facts` | 13 | metadata、validation、parameter edit |
+| `Views` | 11 | Avalonia 页面 |
+| `Setup` | 9 | calibration/setup runtime |
+| `VGC.UI/Controls` | 9 | QGC 风格控件库 |
 
-## 4. 页面级映射
+## QGC 源码区域对照
 
-| QGC 区域 | VGC 对应 | 状态 | 主要缺口 |
-|---|---|---|---|
-| FlyView | `FlyView.axaml`, `FlyViewModel`, 飞行仪表/Toolbar/地图覆盖层 | PARTIAL | 地图底图仍是 placeholder/local vector；视频解码为空实现 |
-| PlanView | `PlanView.axaml`, `PlanViewModel`, Mission/Fence/Rally 控件 | PARTIAL | 地图瓦片未接 Mapsui；拖拽地理转换精度待提升 |
-| AnalyzeView | `AnalyzeView.axaml`, `AnalyzeViewModel`, AnalyzeControls | PARTIAL | OxyPlot 图表未接；FFT 数据流未生产化 |
-| SetupView | `SetupView.axaml`, `SetupViewModel`, SetupControls | PARTIAL | PX4/APM 真实校准、机架应用、电源/电机流程证据不足 |
-| SettingsView | `SettingsView.axaml`, `SettingsViewModel`, SettingsControls | PARTIAL | Video codec 动态枚举、地图下载真实 provider、平台存储需验证 |
-| ParameterView | `ParameterView.axaml`, `ParameterViewModel`, Facts | DONE/PARTIAL | 参数读写边界存在；完整元数据和 SITL 证据仍需补齐 |
-| Shell/导航 | `MainView.axaml`, `ShellViewModel` | DONE | 架构不同于 QGC visible/Loader 模型，但可接受 |
+| QGC area | QML | C++ | H | VGC target | Status | Coverage | Remaining work |
+|---|---:|---:|---:|---|---|---:|---|
+| QmlControls | 98 | 32 | 33 | `VGC.UI/Controls` | Partial | 78% | screenshot parity、完整控件行为证据 |
+| FlyView | 59 | 0 | 0 | `FlyView.axaml`, `FlyViewModel.cs` | Partial | 72% | SITL/实机、截图、完整 action menu 行为 |
+| FlightMap | 29 | 0 | 0 | `MapControls.cs`, `VGC/Maps` | Partial | 68% | offline regions、Android map lifecycle、provider settings、SITL |
+| PlanView | 43 | 0 | 0 | `PlanView.axaml`, `PlanViewModel.cs` | Partial | 72% | complex item authoring、terrain workflow、SITL transfer transcript |
+| AnalyzeView | 18 | 22 | 24 | `VGC/Analyze`, `AnalyzeViewModel.cs` | Partial | 70% | real log packs、screenshot parity |
+| AppSettings | 29 | 0 | 0 | `SettingsView.axaml`, `Core/Settings` | Partial | 55% | full settings pages、map/offline settings、signing UI、device evidence |
+| Settings | 0 | 27 | 27 | `Core/Settings`, `Comms` | Partial | 55% | complete QGC settings backend parity |
+| AutoPilotPlugins | 84 | 55 | 55 | `VGC/Firmware`, `VGC/Setup` | Partial | 58% | airframe/calibration depth、live firmware behavior、hardware evidence |
+| FirmwarePlugin | 7 | 14 | 16 | `VGC/Firmware` | Partial | 62% | full plugin behavior、SITL evidence |
+| FactSystem | 18 | 10 | 10 | `VGC/Facts`, `FactControls.cs` | Partial | 70% | full metadata、edge-case validation |
+| Vehicle | 12 | 62 | 64 | `VGC/Vehicles`, `VGC/Mavlink` | Partial | 60% | full QGC Vehicle、failsafe、terrain、avoidance、signing、hardware evidence |
+| MissionManager | 0 | 37 | 39 | `VGC/Mission` | Partial | 72% | protocol completeness、SITL upload/download evidence |
+| Comms | 0 | 24 | 24 | `VGC/Comms` | Partial | 68% | Bluetooth、Android USB/device、field validation、link recovery parity |
+| MAVLink | 0 | 14 | 19 | `VGC/Mavlink` | Partial | 65% | full dialect coverage、signing、edge cases |
+| GPS | 3 | 17 | 25 | `VGC/Positioning` | Partial | 55% | real GPS、permissions、mobile field evidence |
+| VideoManager | 0 | 46 | 55 | `VGC/Payload` | Partial | 45% | real stream pipeline、decoder/rendering、payload evidence |
+| Camera | 0 | 7 | 7 | `VGC/Payload` | Partial | 55% | real camera capability、media workflow evidence |
+| Terrain | 0 | 6 | 7 | `VGC/Terrain` | Partial | 45% | real terrain service、full QGC terrain workflow |
+| Viewer3D | 8 | 11 | 13 | Deferred | Deferred | 0% | 3D viewer not migrated |
+| Android | 0 | 4 | 10 | `VGC.Android`, `Comms/Android*` | Blocked | 30% | workload/device validation、native serial parity |
+| ADSB | 0 | 3 | 4 | `VGC/Traffic` | Partial | 45% | live ADSB source、map/runtime evidence |
+| LogManager | 1 | 5 | 5 | `VGC/Analyze` | Partial | 65% | real log corpus、UI runtime evidence |
+| Utilities | 0 | 88 | 95 | `Core`, `Validation`, `Release` | Partial | 50% | selective replacement only, not one-to-one mapped |
+| QtLocationPlugin | 0 | 0 | 26 | `VGC/Maps` | Partial | 45% | intentionally replaced by Avalonia/Mapsui-style rendering |
+| API | 0 | 3 | 3 | `Composition`, `ViewModels` | Mapped | 40% | public plugin API parity not claimed |
+| ReleasePackaging | 0 | 0 | 0 | `VGC/Release` | Blocked | 25% | signed Android package、desktop artifact、final evidence pack |
 
----
+## 页面与 UI 状态
 
-## 5. 阶段映射汇总
-
-| 范围 | 目标 | 当前状态 | 判断 |
-|---|---:|---|---|
-| 第 1 期 核心控件 | 52 | DONE/NATIVE | UI 层完成 |
-| 第 2 期 Setup/Analyze/Settings | 35 | 33 DONE / 1 PARTIAL / 1 TODO | PID/OxyPlot 与 VideoSettings 仍缺 |
-| 第 3 期 地图集成 | 12 | 11 DONE / 1 PARTIAL | 覆盖物完成，真实底图未完成 |
-| 第 4 期 高级飞行控件 | 30 | DONE | UI 控件完成，视频运行时另计 |
-| 第 5 期 通用/高级控件 | 100+ | 大部分 DONE | 外部库依赖项未生产化 |
-| Batch 18 快速补全 | 5 | DONE | 明细已同步 |
-
----
-
-## 6. Batch 18 明细同步
-
-| # | QGC 控件 | VGC 实现 | 状态 | 文件 |
-|---:|---|---|---|---|
-| 244 | EditPositionDialog | `EditPositionDialog` | DONE | `DialogSystem.cs` |
-| 245 | DropButton / DropPanel | `DropButton`, `DropPanel` | DONE | `ToolbarIndicators.cs` |
-| 246 | QGCRoundButton | `QGCRoundButton` | DONE | `DialogSystem.cs` |
-| 247 | KMLOrSHPFileDialog | `KMLOrSHPFileDialog` | DONE | `DialogSystem.cs` |
-| 248 | MissionCommandSummary | `MissionCommandSummary` | DONE | `MapControls.cs` |
-
----
-
-## 7. 当前关键 PARTIAL / BLOCKED 项
-
-| 项 | 现状 | 阻塞/缺口 | 优先级 |
-|---|---|---|---|
-| FlightMap 底图 | Mapsui 包已接入，`MapsuiMapRenderer` 默认启用 | OSM 在线瓦片和本地文件缓存已接入；离线下载管理待接 | P0 |
-| FlyView 视频 | `VideoDecodePipeline` + `NullVideoDecoder` | LibVLCSharp 未接入，无法播放 RTSP/UDP | P0 |
-| PID/Telemetry 图表 | `TelemetryChartPlaceholder` | OxyPlot 未接入 | P1 |
-| Vibration FFT | `FrequencyPlot` 有 UI | 缺真实 RAW_IMU→FFT 数据流 | P1 |
-| VideoSettings | 有 runtime/UI | codec 枚举硬编码，需 LibVLC 支持 | P1 |
-| MissionItemIndicatorDrag | 有点击/编辑基础 | 拖拽预览、Mercator 转换、完成事件不足 | P1 |
-| MAVLink dialect | seed definitions + 手写服务 | full common/ardupilotmega generator blocked | P0 |
-| MAVLink runtime adoption | Command/Mission/Parameter/Camera/Gimbal partial | 需 generated writer/reader 与 SITL 证据 | P0 |
-| Firmware setup | UI 和状态机存在 | PX4/APM 真实校准/机架/电源/电机证据不足 | P1 |
-| Vehicle fact groups | 常用 fact groups 已有 | QGC specialty fact groups、object avoidance 不完整 | P1 |
-| 3D Viewer | 规划中 | 无 OpenTK/Avalonia 3D 集成 | P3 |
-
----
-
-## 8. 外部库集成状态
-
-| 库 | 当前引用 | VGC 架构准备 | 影响 |
-|---|---|---|---|
-| Avalonia | 已引用 | UI 主框架 | 已使用 |
-| ReactiveUI.Avalonia | 已引用 | ViewModel 命令/绑定 | 已使用 |
-| Mapsui / Mapsui.Avalonia | 已引用 | `MapsuiMapRenderer`, `IMapRenderer`, OSM tile download/cache, `MapProviderAdapter` | WebMercator + OSM 瓦片已接入；离线下载管理待完善 |
-| OxyPlot.Avalonia | 未引用 | `TelemetryChartRuntime`, `TelemetryChartPlaceholder` | 图表 blocked |
-| LibVLCSharp.Avalonia | 未引用 | `IVideoDecoder`, `VideoDecodePipeline`, `VideoSettingsRuntime` | 视频 blocked |
-| OpenTK / Avalonia OpenGL | 未引用 | 路线图规划 | 3D blocked |
-
----
-
-## 9. 构建验证
-
-| 项目 | 最近验证 | 结果 |
+| Area | Current state | Remaining work |
 |---|---|---|
-| `VGC/VGC.csproj` | 2026-07-02 | 0 错误 / 0 警告 |
-| `VGC.Desktop` | 未在本次验证 | 需单独构建 |
-| `VGC.Android` | 未在本次验证 | 需单独构建 |
-| Tests | 未在本次验证 | 需补测试入口与执行记录 |
+| Shell/navigation | Avalonia shell、toolbar、drawer、logs 入口已实现 | QGC screenshot/resize/platform shell parity |
+| Fly | toolbar、ToolStrip、HUD、PiP、虚拟摇杆、告警、飞前检查、地图接线已实现；二级/三级入口基本正确 | SITL/实机命令证据、视频真实播放、截图 parity、更多动作矩阵 |
+| Plan | mission/fence/rally、地图点击、overlay、transfer、import/export 已实现；二级/三级编辑入口基本正确 | complex item 全量 authoring、terrain、SITL upload/download |
+| Setup | safety/sensors/radio/power/airframe/motors/PID/joystick UI 与状态机存在；二级/三级分流基本正确 | PX4/APM 真实校准、机架、电源、电机证据 |
+| Analyze | inspector、console、replay、logs、geotag、vibration 基础存在；二级/三级调用正确 | OxyPlot 图表、FFT 数据流、真实日志 corpus |
+| Settings | grouped settings、link config、NTRIP/offline map/video settings 框架存在 | 完整 QGC settings runtime、signing UI、平台存储/device evidence |
+| Parameters | 搜索、编辑、写入边界存在 | 完整 metadata、SITL/实机参数写入证据 |
 
----
+## 生产级阻塞项
 
-## 10. 映射结论
+| Priority | Blocker | Current state | Required evidence |
+|---|---|---|---|
+| P0 | Android build/device | Android workload build、APK install、emulator lifecycle 已验证 | physical USB/serial skipped this pass |
+| P0 | SITL validation | TCP SITL heartbeat/telemetry transcript 已采集 | active command transcript blocked pending explicit scenario authorization |
+| P0 | Real hardware | Skipped this pass | out of current scope |
+| P0 | Release artifacts | desktop publish + Android Release signed APK present | final acceptance still needs parity/runtime evidence |
+| P0 | MAVLink full dialect | parser/writer、seed coverage、manifest、common/ardupilotmega seed fixture 存在 | full upstream common/ardupilotmega generated coverage |
+| P0 | Video playback | Skipped real stream; synthetic decoder/frame health test present | out of current scope |
+| P1 | Map offline/provider UI | online raster、offline planning/policy、download queue exists | Android map lifecycle/provider UI evidence |
+| P1 | Analyze charts | chart runtime/placeholder exists | OxyPlot rendering + data stream evidence |
+| P1 | Setup production workflows | UI/state machines exist | PX4/APM calibration/airframe/power/motor transcripts |
+| P3 | Viewer3D | deferred | selected 3D stack + minimum viewer implementation |
 
-VGC 已经完成大部分 QGC UI 控件的 Avalonia 化移植，尤其是 Fly/Plan/Setup/Analyze/Settings 的页面骨架、Canvas 绘制控件、Toolbar 指示器、任务规划覆盖物和弹窗系统。后续重点不是继续堆 UI 控件，而是把现有占位和抽象接入真实生产运行时: Mapsui、LibVLCSharp、OxyPlot、完整 MAVLink dialect、PX4/ArduPilot SITL/硬件验证。
+## 验证状态
+
+| Check | Latest result |
+|---|---|
+| `dotnet test "E:/Code/VGC/VGC/VGC.Tests/VGC.Tests.csproj" --no-restore` | Pass |
+| `dotnet build "E:/Code/VGC/VGC/VGC.Desktop/VGC.Desktop.csproj" --no-restore` | Pass, 0 warnings/errors |
+| Android build | Pass: SSH/Linux build + emulator install/launch transcript captured |
+| SITL | Partial: TCP heartbeat/telemetry transcript captured; ArduPilot/command evidence missing |
+| Real hardware | Skipped: out of current scope |
+| Release candidate | Packaging pass: desktop publish + Android Release signed APK present; final replacement still blocked by runtime/parity evidence |
+| Evidence index | `docs/RELEASE_EVIDENCE_INDEX.md` |
+
+## 文档维护规则
+
+| Rule | Apply |
+|---|---|
+| 进度以代码审计模型为准 | 更新 `QgcSourcePortInventory.cs` / `QgcQmlParityCatalog.cs` 后再更新本文 |
+| 不用 DONE 表示生产级完成 | 没有 runtime/SITL/device/release evidence 时保持 Partial/Blocked |
+| 删除重复路线图 | 本文保留源码对照、页面状态、阻塞项；路线图由代码 audit/tests 承载 |
+| 新增功能后补测试 | 防止 `CanClaim*` 被误改为 true |
