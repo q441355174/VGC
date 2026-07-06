@@ -1,0 +1,10 @@
+<mavlink>
+  <include>common.seed.xml</include>
+  <messages>
+    <message id="11030" name="GOPRO_HEARTBEAT">
+      <field type="uint8_t" name="status" />
+      <field type="uint8_t" name="capture_mode" />
+      <field type="uint8_t" name="flags" />
+    </message>
+  </messages>
+</mavlink>

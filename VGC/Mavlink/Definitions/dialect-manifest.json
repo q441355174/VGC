@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "dialects": [
+    {
+      "name": "common",
+      "fixture": "common.seed.xml",
+      "status": "seed",
+      "fullUpstreamRequired": true
+    },
+    {
+      "name": "ardupilotmega",
+      "fixture": "ardupilotmega.seed.xml",
+      "status": "seed",
+      "fullUpstreamRequired": true,
+      "includes": ["common.seed.xml"]
+    }
+  ],
+  "blockers": [
+    "full upstream common.xml normalization",
+    "full upstream ardupilotmega.xml normalization",
+    "dialect-wide generated strong message adoption"
+  ]
+}
